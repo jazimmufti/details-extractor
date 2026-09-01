@@ -1792,6 +1792,160 @@ body {
 }
 
 /* ==========================================
+   Quick Send Instagram Modal & Card Actions
+   ========================================== */
+.ig-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.send-test-mini-btn {
+  background: linear-gradient(135deg, rgba(225, 48, 108, 0.25), rgba(139, 92, 246, 0.25));
+  border: 1px solid rgba(225, 48, 108, 0.45);
+  color: #f472b6;
+  font-weight: 600;
+}
+
+.send-test-mini-btn:hover {
+  background: linear-gradient(135deg, rgba(225, 48, 108, 0.4), rgba(139, 92, 246, 0.4));
+  color: #ffffff;
+  border-color: rgba(225, 48, 108, 0.7);
+  box-shadow: 0 0 12px rgba(225, 48, 108, 0.3);
+}
+
+.quick-send-modal-window {
+  max-width: 580px;
+}
+
+.quick-send-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-modal-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.quick-meta-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-meta-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.quick-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.quick-eligibility-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-eligibility-box.eligible {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.quick-eligibility-box.not_eligible {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.quick-eligibility-box.not_configured {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.eligibility-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-indicator-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.quick-status-explanation {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.quick-modal-msg-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.quick-modal-textarea {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: var(--font-body);
+  resize: vertical;
+}
+
+.quick-modal-textarea:focus {
+  border-color: var(--primary);
+}
+
+.quick-modal-igsid-wrap {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-send-modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ==========================================
    Footer
    ========================================== */
 .app-footer {
@@ -1832,4 +1986,14 @@ body {
     flex-direction: column;
     align-items: flex-start;
   }
+  .instagram-display-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .ig-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
+

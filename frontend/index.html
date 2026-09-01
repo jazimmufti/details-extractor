@@ -281,9 +281,14 @@
                   <span class="ig-at-symbol">@</span>
                   <span id="discovered-ig-username" class="highlight-ig">username</span>
                 </div>
-                <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" title="Open Instagram">
-                  <span>Open Instagram</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                </a>
+                <div class="ig-card-actions">
+                  <button type="button" id="quick-send-ig-btn" class="mini-action-btn send-test-mini-btn" title="Send Test Message via Meta API">
+                    <i class="fa-brands fa-instagram"></i> <span>Send Test Message</span>
+                  </button>
+                  <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" title="Open Instagram">
+                    <span>Open Instagram</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  </a>
+                </div>
               </div>
               <div class="evidence-source-tag">
                 <i class="fa-solid fa-circle-check"></i> <span id="ig-evidence-text">Discovered from verified channel link</span>
@@ -534,6 +539,99 @@
         <div id="history-list" class="history-list">
           <!-- Dynamic message history cards -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Instagram Test Message Modal -->
+  <div id="quick-send-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quick-send-modal-title">
+    <div class="modal-window quick-send-modal-window glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="icon-circle instagram-icon-circle"><i class="fa-brands fa-instagram"></i></div>
+          <div>
+            <h3 id="quick-send-modal-title">Send Test Message</h3>
+            <p>Official Meta Graph API Direct Message</p>
+          </div>
+        </div>
+        <button id="close-quick-send-modal-btn" class="modal-close-icon" title="Close dialog (Esc)"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body quick-send-modal-body">
+        <!-- Recipient & Sender Meta Details -->
+        <div class="quick-modal-meta-grid">
+          <div class="quick-meta-card">
+            <span class="quick-meta-label">To (Discovered Account):</span>
+            <span id="quick-modal-recipient-username" class="quick-meta-val highlight-ig">@username</span>
+          </div>
+          <div class="quick-meta-card">
+            <span class="quick-meta-label">From (Connected Account):</span>
+            <span id="quick-modal-sender-account" class="quick-meta-val">Connected Instagram Account</span>
+          </div>
+        </div>
+
+        <!-- Eligibility Status Box inside Modal -->
+        <div id="quick-modal-eligibility-box" class="quick-eligibility-box checking">
+          <div class="eligibility-status-row">
+            <span class="status-indicator-label">Messaging Status:</span>
+            <span id="quick-modal-status-badge" class="pill-badge pill-neutral">Checking Eligibility...</span>
+          </div>
+          <p id="quick-modal-status-explanation" class="quick-status-explanation">
+            Evaluating recipient eligibility with Meta Graph API rules...
+          </p>
+        </div>
+
+        <!-- Optional IGSID drawer if user has one or wants to supply it -->
+        <div id="quick-modal-igsid-wrap" class="quick-modal-igsid-wrap" style="display: none;">
+          <label class="quick-field-label">Tester / Recipient IGSID:</label>
+          <div class="igsid-input-group">
+            <input
+              type="text"
+              id="quick-modal-igsid-input"
+              class="igsid-input-field"
+              placeholder="Enter Instagram Scoped ID (IGSID) e.g. 178414..."
+              spellcheck="false"
+            />
+            <button type="button" id="quick-modal-apply-igsid-btn" class="apply-igsid-btn">Apply</button>
+          </div>
+        </div>
+
+        <!-- Message Editor -->
+        <div class="quick-modal-msg-wrap" id="quick-modal-msg-wrap">
+          <label for="quick-modal-textarea" class="quick-field-label">Message Content:</label>
+          <textarea
+            id="quick-modal-textarea"
+            class="active-dispatch-textarea quick-modal-textarea"
+            rows="3"
+          >Hi! This is a test message from my AI creator outreach application.</textarea>
+        </div>
+
+        <!-- Send Result Feedback inside Modal -->
+        <div id="quick-modal-result-card" class="send-result-card" style="display: none;">
+          <div class="result-card-inner">
+            <i class="result-card-icon" id="quick-result-icon"></i>
+            <div class="result-card-details">
+              <h4 id="quick-result-title">Message Status</h4>
+              <p id="quick-result-message">Message details...</p>
+              <div id="quick-result-meta-info" class="result-meta-info" style="display: none;">
+                <span class="meta-item">Message ID: <code id="quick-result-msg-id">--</code></span>
+                <span class="meta-item">Sent At: <span id="quick-result-timestamp">--</span></span>
+                <span class="meta-item">Sender: <code id="quick-result-sender">Connected Account</code></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer quick-send-modal-footer">
+        <button type="button" id="quick-modal-cancel-btn" class="secondary-btn">Cancel</button>
+        <a id="quick-modal-open-ig-btn" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" style="display: none;">
+          <i class="fa-brands fa-instagram"></i> Open Instagram
+        </a>
+        <button type="button" id="quick-modal-send-btn" class="primary-send-btn">
+          <span class="btn-text"><i class="fa-brands fa-instagram"></i> Send Test Message</span>
+          <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending via Meta...</span>
+        </button>
       </div>
     </div>
   </div>

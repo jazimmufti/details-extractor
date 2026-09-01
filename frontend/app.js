@@ -104,6 +104,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultTimestamp = document.getElementById("result-timestamp");
   const retrySendBtn = document.getElementById("retry-send-btn");
 
+  // Elements - Quick Instagram Send Modal & Card Button
+  const quickSendIgBtn = document.getElementById("quick-send-ig-btn");
+  const quickSendModal = document.getElementById("quick-send-modal");
+  const closeQuickSendModalBtn = document.getElementById("close-quick-send-modal-btn");
+  const quickModalRecipientUsername = document.getElementById("quick-modal-recipient-username");
+  const quickModalSenderAccount = document.getElementById("quick-modal-sender-account");
+  const quickModalEligibilityBox = document.getElementById("quick-modal-eligibility-box");
+  const quickModalStatusBadge = document.getElementById("quick-modal-status-badge");
+  const quickModalStatusExplanation = document.getElementById("quick-modal-status-explanation");
+  const quickModalIgsidWrap = document.getElementById("quick-modal-igsid-wrap");
+  const quickModalIgsidInput = document.getElementById("quick-modal-igsid-input");
+  const quickModalApplyIgsidBtn = document.getElementById("quick-modal-apply-igsid-btn");
+  const quickModalTextarea = document.getElementById("quick-modal-textarea");
+  const quickModalResultCard = document.getElementById("quick-modal-result-card");
+  const quickResultIcon = document.getElementById("quick-result-icon");
+  const quickResultTitle = document.getElementById("quick-result-title");
+  const quickResultMessage = document.getElementById("quick-result-message");
+  const quickResultMetaInfo = document.getElementById("quick-result-meta-info");
+  const quickResultMsgId = document.getElementById("quick-result-msg-id");
+  const quickResultTimestamp = document.getElementById("quick-result-timestamp");
+  const quickResultSender = document.getElementById("quick-result-sender");
+  const quickModalCancelBtn = document.getElementById("quick-modal-cancel-btn");
+  const quickModalOpenIgBtn = document.getElementById("quick-modal-open-ig-btn");
+  const quickModalSendBtn = document.getElementById("quick-modal-send-btn");
+
   // Elements - Evidence Trail & Modals
   const evidenceTrailSection = document.getElementById("evidence-trail-section");
   const closeEvidenceBtn = document.getElementById("close-evidence-btn");
@@ -117,8 +142,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentDiscoveredUsername = null;
   let activeRecipientIgsid = null;
   let currentEligibility = null;
+  let connectedAccountId = null;
   let isEditingOutreach = false;
   let activeMessageType = "test"; // "test" or "outreach"
+  let isSendingActive = false;
 
   const DEFAULT_TEST_MESSAGE = "Hi! This is a test message from my AI creator outreach application.";
 
@@ -580,6 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
     eligibilityBannerTitle.textContent = "Evaluating Meta Graph API Messaging Rules...";
     eligibilityBannerDesc.textContent = "Checking recipient identifier and Meta API configuration...";
 
+    if (quickModalStatusBadge) {
+      quickModalStatusBadge.className = "pill-badge pill-neutral";
+      quickModalStatusBadge.textContent = "Checking Eligibility...";
+      quickModalStatusExplanation.textContent = "Evaluating recipient eligibility with Meta Graph API rules...";
+    }
+
     try {
       const res = await fetch("/api/social/instagram/eligibility", {
         method: "POST",
@@ -594,21 +627,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         currentEligibility = data;
         renderEligibilityUI(data);
+        renderQuickModalEligibilityUI(data);
       } else {
-        renderEligibilityUI({
+        const fallback = {
           configured: false,
           is_eligible: false,
           status: "failed",
           reason: "Unable to check Meta API eligibility."
-        });
+        };
+        renderEligibilityUI(fallback);
+        renderQuickModalEligibilityUI(fallback);
       }
     } catch (e) {
-      renderEligibilityUI({
+      const fallback = {
         configured: false,
         is_eligible: false,
         status: "failed",
         reason: `Eligibility check error: ${e.message}`
-      });
+      };
+      renderEligibilityUI(fallback);
+      renderQuickModalEligibilityUI(fallback);
     }
   }
 
@@ -673,6 +711,132 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function renderQuickModalEligibilityUI(data) {
+    if (!quickSendModal) return;
+
+    quickModalRecipientUsername.textContent = data.username ? `@${data.username}` : (currentDiscoveredUsername ? `@${currentDiscoveredUsername}` : "None");
+    quickModalSenderAccount.textContent = connectedAccountId ? `Connected Account (ID: ${connectedAccountId})` : "Connected Instagram Business Account";
+
+    if (data.status === "eligible") {
+      quickModalEligibilityBox.className = "quick-eligibility-box eligible";
+      quickModalStatusBadge.className = "pill-badge pill-success";
+      quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Eligible`;
+      quickModalStatusExplanation.textContent = data.reason;
+      quickModalSendBtn.disabled = false;
+      quickModalOpenIgBtn.style.display = "none";
+      quickModalIgsidWrap.style.display = "none";
+
+    } else if (data.status === "not_eligible") {
+      quickModalEligibilityBox.className = "quick-eligibility-box not_eligible";
+      quickModalStatusBadge.className = "pill-badge pill-warning";
+      quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Not Currently Eligible`;
+      quickModalStatusExplanation.innerHTML = `This Instagram profile was discovered publicly, but Meta has not provided a messaging recipient ID for this account. A public @username cannot be cold-messaged through the official Meta API. The creator must first interact with your connected Instagram account, or you must have a valid IGSID.`;
+      quickModalSendBtn.disabled = false;
+      quickModalOpenIgBtn.style.display = "inline-flex";
+      quickModalOpenIgBtn.href = data.username ? `https://instagram.com/${data.username}` : "#";
+      quickModalIgsidWrap.style.display = "block";
+
+    } else if (data.status === "not_configured") {
+      quickModalEligibilityBox.className = "quick-eligibility-box not_configured";
+      quickModalStatusBadge.className = "pill-badge pill-danger";
+      quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Meta API Not Configured`;
+      quickModalStatusExplanation.textContent = data.reason;
+      quickModalSendBtn.disabled = false;
+      quickModalOpenIgBtn.style.display = "none";
+      quickModalIgsidWrap.style.display = "none";
+
+    } else {
+      quickModalEligibilityBox.className = "quick-eligibility-box";
+      quickModalStatusBadge.className = "pill-badge pill-neutral";
+      quickModalStatusBadge.textContent = "Not Discovered";
+      quickModalStatusExplanation.textContent = "No Instagram account was discovered for this creator.";
+      quickModalSendBtn.disabled = true;
+      quickModalOpenIgBtn.style.display = "none";
+      quickModalIgsidWrap.style.display = "none";
+    }
+  }
+
+  // ==========================================
+  // Quick Send Dialog Management
+  // ==========================================
+  function openInstagramTestMessageDialog() {
+    if (!currentDiscoveredUsername) {
+      alert("No Instagram account has been discovered yet.");
+      return;
+    }
+
+    quickModalRecipientUsername.textContent = `@${currentDiscoveredUsername}`;
+    quickModalSenderAccount.textContent = connectedAccountId ? `Connected Account (ID: ${connectedAccountId})` : "Connected Instagram Account";
+    quickModalTextarea.value = DEFAULT_TEST_MESSAGE;
+    quickModalResultCard.style.display = "none";
+    quickResultMetaInfo.style.display = "none";
+
+    if (activeRecipientIgsid && quickModalIgsidInput) {
+      quickModalIgsidInput.value = activeRecipientIgsid;
+    }
+
+    // Refresh eligibility
+    checkInstagramEligibility(currentDiscoveredUsername, activeRecipientIgsid);
+
+    quickSendModal.style.display = "flex";
+    setTimeout(() => {
+      quickModalTextarea.focus();
+    }, 100);
+  }
+
+  function closeInstagramTestMessageDialog() {
+    quickSendModal.style.display = "none";
+  }
+
+  if (quickSendIgBtn) {
+    quickSendIgBtn.addEventListener("click", openInstagramTestMessageDialog);
+  }
+
+  if (closeQuickSendModalBtn) {
+    closeQuickSendModalBtn.addEventListener("click", closeInstagramTestMessageDialog);
+  }
+
+  if (quickModalCancelBtn) {
+    quickModalCancelBtn.addEventListener("click", closeInstagramTestMessageDialog);
+  }
+
+  if (quickSendModal) {
+    quickSendModal.addEventListener("click", (e) => {
+      if (e.target === quickSendModal) {
+        closeInstagramTestMessageDialog();
+      }
+    });
+  }
+
+  // Keyboard shortcut: Escape to close modals
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (quickSendModal && quickSendModal.style.display === "flex") {
+        closeInstagramTestMessageDialog();
+      }
+      if (historyModal && historyModal.style.display === "flex") {
+        historyModal.style.display = "none";
+      }
+    }
+  });
+
+  if (quickModalApplyIgsidBtn) {
+    quickModalApplyIgsidBtn.addEventListener("click", () => {
+      const customId = quickModalIgsidInput.value.trim();
+      if (customId) {
+        activeRecipientIgsid = customId;
+        if (customIgsidInput) customIgsidInput.value = customId;
+        quickModalApplyIgsidBtn.textContent = "Applied ✓";
+        checkInstagramEligibility(currentDiscoveredUsername, activeRecipientIgsid);
+        setTimeout(() => { quickModalApplyIgsidBtn.textContent = "Apply"; }, 2000);
+      } else {
+        activeRecipientIgsid = null;
+        if (customIgsidInput) customIgsidInput.value = "";
+        checkInstagramEligibility(currentDiscoveredUsername, null);
+      }
+    });
+  }
+
   // Tabs: Test Message vs AI Outreach Message
   tabTestMsg.addEventListener("click", () => {
     activeMessageType = "test";
@@ -700,35 +864,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const customId = customIgsidInput.value.trim();
     if (customId) {
       activeRecipientIgsid = customId;
+      if (quickModalIgsidInput) quickModalIgsidInput.value = customId;
       applyIgsidBtn.textContent = "Applied ✓";
       checkInstagramEligibility(currentDiscoveredUsername, activeRecipientIgsid);
       setTimeout(() => { applyIgsidBtn.textContent = "Apply IGSID"; }, 2000);
     } else {
       activeRecipientIgsid = null;
+      if (quickModalIgsidInput) quickModalIgsidInput.value = "";
       checkInstagramEligibility(currentDiscoveredUsername, null);
     }
   });
 
   // ==========================================
-  // 10. REAL Instagram Send Message Action
+  // 10. REAL Instagram Send Message Action (Unified)
   // ==========================================
-  sendInstagramBtn.addEventListener("click", async () => {
-    const msgToSend = activeDispatchTextarea.value.trim();
-    if (!msgToSend) {
+  async function executeInstagramSend(msgToSend, triggerSource = "console") {
+    if (isSendingActive) return; // Prevent double-clicks / concurrent requests
+    if (!msgToSend || !msgToSend.trim()) {
       alert("Please provide a message text before sending.");
       return;
     }
 
+    isSendingActive = true;
     setSendingState(true);
+    setQuickModalSendingState(true);
+
     sendResultCard.style.display = "none";
     resultMetaInfo.style.display = "none";
     retrySendBtn.style.display = "none";
+
+    quickModalResultCard.style.display = "none";
+    quickResultMetaInfo.style.display = "none";
 
     const payload = {
       creator_id: currentExtraction?.youtube?.channel_id || null,
       instagram_username: currentDiscoveredUsername || null,
       instagram_user_id: activeRecipientIgsid || null,
-      message: msgToSend,
+      message: msgToSend.trim(),
       message_type: activeMessageType
     };
 
@@ -740,18 +912,94 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const result = await response.json();
+      isSendingActive = false;
       setSendingState(false);
+      setQuickModalSendingState(false);
+
       renderSendResult(result);
+      renderQuickModalSendResult(result);
 
     } catch (err) {
+      isSendingActive = false;
       setSendingState(false);
-      renderSendResult({
+      setQuickModalSendingState(false);
+
+      const errResult = {
         success: false,
         status: "failed",
         error: `Network error contacting server: ${err.message}`
-      });
+      };
+      renderSendResult(errResult);
+      renderQuickModalSendResult(errResult);
     }
+  }
+
+  sendInstagramBtn.addEventListener("click", () => {
+    executeInstagramSend(activeDispatchTextarea.value, "console");
   });
+
+  if (quickModalSendBtn) {
+    quickModalSendBtn.addEventListener("click", () => {
+      executeInstagramSend(quickModalTextarea.value, "modal");
+    });
+  }
+
+  function setSendingState(isSending) {
+    sendInstagramBtn.disabled = isSending;
+    const btnText = sendInstagramBtn.querySelector(".btn-text");
+    const btnSpinner = sendInstagramBtn.querySelector(".btn-spinner");
+    if (btnText) btnText.style.display = isSending ? "none" : "inline-flex";
+    if (btnSpinner) btnSpinner.style.display = isSending ? "inline-flex" : "none";
+    if (isSending) {
+      sendStatusDisplay.innerHTML = `<span style="color: #818cf8;"><i class="fa-solid fa-circle-notch fa-spin"></i> Contacting official Meta Graph API...</span>`;
+    }
+  }
+
+  function setQuickModalSendingState(isSending) {
+    if (!quickModalSendBtn) return;
+    quickModalSendBtn.disabled = isSending;
+    const btnText = quickModalSendBtn.querySelector(".btn-text");
+    const btnSpinner = quickModalSendBtn.querySelector(".btn-spinner");
+    if (btnText) btnText.style.display = isSending ? "none" : "inline-flex";
+    if (btnSpinner) btnSpinner.style.display = isSending ? "inline-flex" : "none";
+  }
+
+  function renderQuickModalSendResult(res) {
+    if (!quickModalResultCard) return;
+    quickModalResultCard.style.display = "block";
+
+    if (res.success && res.status === "sent") {
+      quickModalResultCard.className = "send-result-card success-card";
+      quickResultIcon.className = "fa-solid fa-circle-check result-card-icon";
+      quickResultTitle.textContent = "✓ Test Message Sent Successfully";
+      quickResultMessage.textContent = "Meta Graph API confirmed receipt and delivery of the message to the recipient.";
+
+      quickResultMsgId.textContent = res.message_id || "N/A";
+      quickResultTimestamp.textContent = res.sent_at ? new Date(res.sent_at).toLocaleTimeString() : new Date().toLocaleTimeString();
+      quickResultSender.textContent = connectedAccountId ? `ID: ${connectedAccountId}` : "Connected Account";
+      quickResultMetaInfo.style.display = "flex";
+
+    } else if (res.status === "not_eligible") {
+      quickModalResultCard.className = "send-result-card ineligible-card";
+      quickResultIcon.className = "fa-solid fa-triangle-exclamation result-card-icon";
+      quickResultTitle.textContent = "✕ Recipient Not Eligible for Meta API Messaging";
+      quickResultMessage.textContent = res.error || "The recipient is not eligible for this messaging flow under Meta API rules.";
+
+    } else if (res.status === "not_configured") {
+      quickModalResultCard.className = "send-result-card error-card";
+      quickResultIcon.className = "fa-solid fa-circle-xmark result-card-icon";
+      quickResultTitle.textContent = "✕ Meta Instagram API Not Configured";
+      quickResultMessage.textContent = res.error || "Instagram messaging is not configured yet. Configure server credentials.";
+
+    } else {
+      quickModalResultCard.className = "send-result-card error-card";
+      quickResultIcon.className = "fa-solid fa-circle-xmark result-card-icon";
+      quickResultTitle.textContent = "✕ Message Could Not Be Sent";
+      quickResultMessage.textContent = res.error || "Meta rejected the message or an internal error occurred.";
+    }
+
+    quickModalResultCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   function setSendingState(isSending) {
     sendInstagramBtn.disabled = isSending;

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # API Keys
     YOUTUBE_API_KEY: str = Field(default="", description="YouTube Data API v3 key")
     GEMINI_API_KEY: str = Field(default="", description="Google Gemini API key")
-    GEMINI_MODEL: str = Field(default="gemini-1.5-flash", description="Gemini model name")
+    GEMINI_MODEL: str = Field(default="gemini-3.6-flash", description="Gemini model name")
 
     # Server settings
     HOST: str = Field(default="0.0.0.0", description="Host to bind server")
