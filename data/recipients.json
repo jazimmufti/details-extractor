@@ -8,8 +8,8 @@
     "status": "eligible",
     "source": "webhook_messaging",
     "resolved_via": "webhook_messaging",
-    "last_interaction_at": "2026-09-01T13:09:59.712375+00:00",
-    "updated_at": "2026-09-01T13:09:59.712375+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.305968+00:00",
+    "updated_at": "2026-09-01T14:03:58.305968+00:00",
     "first_interaction_at": "2026-09-01T08:39:31.218209+00:00"
   },
   "eligible_user": {
@@ -61,8 +61,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.895108+00:00",
-    "updated_at": "2026-09-01T13:09:59.895108+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.603046+00:00",
+    "updated_at": "2026-09-01T14:03:58.603046+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.800503+00:00"
   },
   "cid:UC_reg_creator_123": {
@@ -74,8 +74,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.895108+00:00",
-    "updated_at": "2026-09-01T13:09:59.895108+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.603046+00:00",
+    "updated_at": "2026-09-01T14:03:58.603046+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.800503+00:00"
   },
   "auto_resolved_creator": {
@@ -87,8 +87,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.945154+00:00",
-    "updated_at": "2026-09-01T13:09:59.945154+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.645387+00:00",
+    "updated_at": "2026-09-01T14:03:58.645387+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.828936+00:00"
   },
   "cid:UC_auto_123": {
@@ -100,8 +100,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.945154+00:00",
-    "updated_at": "2026-09-01T13:09:59.945154+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.645387+00:00",
+    "updated_at": "2026-09-01T14:03:58.645387+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.828936+00:00"
   },
   "17841499887766554": {
@@ -113,8 +113,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.895108+00:00",
-    "updated_at": "2026-09-01T13:09:59.895108+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.603046+00:00",
+    "updated_at": "2026-09-01T14:03:58.603046+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.800503+00:00"
   },
   "17841477777777777": {
@@ -126,8 +126,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:09:59.945154+00:00",
-    "updated_at": "2026-09-01T13:09:59.945154+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.645387+00:00",
+    "updated_at": "2026-09-01T14:03:58.645387+00:00",
     "first_interaction_at": "2026-09-01T11:25:12.828936+00:00"
   },
   "real_collaborator": {
@@ -139,8 +139,8 @@
     "status": "eligible",
     "source": "webhook_messaging",
     "resolved_via": "webhook_messaging",
-    "last_interaction_at": "2026-09-01T13:10:00.399469+00:00",
-    "updated_at": "2026-09-01T13:10:00.399469+00:00",
+    "last_interaction_at": "2026-09-01T14:03:59.678825+00:00",
+    "updated_at": "2026-09-01T14:03:59.678825+00:00",
     "first_interaction_at": "2026-09-01T12:35:38.755455+00:00"
   },
   "cid:UC_collab_999": {
@@ -152,8 +152,8 @@
     "status": "eligible",
     "source": "webhook_messaging",
     "resolved_via": "webhook_messaging",
-    "last_interaction_at": "2026-09-01T13:10:00.399469+00:00",
-    "updated_at": "2026-09-01T13:10:00.399469+00:00",
+    "last_interaction_at": "2026-09-01T14:03:59.678825+00:00",
+    "updated_at": "2026-09-01T14:03:59.678825+00:00",
     "first_interaction_at": "2026-09-01T12:35:38.755455+00:00"
   },
   "17841499112233445": {
@@ -165,8 +165,8 @@
     "status": "eligible",
     "source": "webhook_messaging",
     "resolved_via": "webhook_messaging",
-    "last_interaction_at": "2026-09-01T13:10:00.399469+00:00",
-    "updated_at": "2026-09-01T13:10:00.399469+00:00",
+    "last_interaction_at": "2026-09-01T14:03:59.678825+00:00",
+    "updated_at": "2026-09-01T14:03:59.678825+00:00",
     "first_interaction_at": "2026-09-01T12:35:38.755455+00:00"
   },
   "17841409999999999": {
@@ -178,8 +178,8 @@
     "status": "eligible",
     "source": "webhook_messaging",
     "resolved_via": "webhook_messaging",
-    "last_interaction_at": "2026-09-01T13:09:59.712375+00:00",
-    "updated_at": "2026-09-01T13:09:59.712375+00:00",
+    "last_interaction_at": "2026-09-01T14:03:58.305968+00:00",
+    "updated_at": "2026-09-01T14:03:58.305968+00:00",
     "first_interaction_at": "2026-09-01T08:39:31.218209+00:00"
   },
   "verified_partner": {
@@ -191,8 +191,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.532193+00:00",
-    "updated_at": "2026-09-01T13:10:00.532193+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.093335+00:00",
+    "updated_at": "2026-09-01T14:04:00.093335+00:00",
     "first_interaction_at": "2026-09-01T12:50:56.456652+00:00"
   },
   "cid:UC_verified_partner_99": {
@@ -204,8 +204,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.532193+00:00",
-    "updated_at": "2026-09-01T13:10:00.532193+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.093335+00:00",
+    "updated_at": "2026-09-01T14:04:00.093335+00:00",
     "first_interaction_at": "2026-09-01T12:50:56.456652+00:00"
   },
   "17841499998888777": {
@@ -217,8 +217,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.532193+00:00",
-    "updated_at": "2026-09-01T13:10:00.532193+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.093335+00:00",
+    "updated_at": "2026-09-01T14:04:00.093335+00:00",
     "first_interaction_at": "2026-09-01T12:50:56.456652+00:00"
   },
   "failing_recipient": {
@@ -230,8 +230,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.575407+00:00",
-    "updated_at": "2026-09-01T13:10:00.575407+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.172577+00:00",
+    "updated_at": "2026-09-01T14:04:00.172577+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.397063+00:00"
   },
   "cid:UC_fail_creator_01": {
@@ -243,8 +243,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.575407+00:00",
-    "updated_at": "2026-09-01T13:10:00.575407+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.172577+00:00",
+    "updated_at": "2026-09-01T14:04:00.172577+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.397063+00:00"
   },
   "17841488888888888": {
@@ -256,8 +256,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.575407+00:00",
-    "updated_at": "2026-09-01T13:10:00.575407+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.172577+00:00",
+    "updated_at": "2026-09-01T14:04:00.172577+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.397063+00:00"
   },
   "partner_with_igsid": {
@@ -269,8 +269,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.693192+00:00",
-    "updated_at": "2026-09-01T13:10:00.693192+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.481411+00:00",
+    "updated_at": "2026-09-01T14:04:00.481411+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.514318+00:00"
   },
   "cid:UC_partner_01": {
@@ -282,8 +282,8 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.693192+00:00",
-    "updated_at": "2026-09-01T13:10:00.693192+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.481411+00:00",
+    "updated_at": "2026-09-01T14:04:00.481411+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.514318+00:00"
   },
   "17841411122233344": {
@@ -295,8 +295,86 @@
     "status": "eligible",
     "source": "meta_webhook",
     "resolved_via": "meta_webhook",
-    "last_interaction_at": "2026-09-01T13:10:00.693192+00:00",
-    "updated_at": "2026-09-01T13:10:00.693192+00:00",
+    "last_interaction_at": "2026-09-01T14:04:00.481411+00:00",
+    "updated_at": "2026-09-01T14:04:00.481411+00:00",
     "first_interaction_at": "2026-09-01T12:50:57.514318+00:00"
+  },
+  "eligible_creator": {
+    "igsid": "17841499998888111",
+    "username": "eligible_creator",
+    "creator_id": "UC_eligible_001",
+    "instagram_url": "https://instagram.com/eligible_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.546694+00:00",
+    "updated_at": "2026-09-01T14:04:00.546694+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.187150+00:00"
+  },
+  "cid:UC_eligible_001": {
+    "igsid": "17841499998888111",
+    "username": "eligible_creator",
+    "creator_id": "UC_eligible_001",
+    "instagram_url": "https://instagram.com/eligible_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.546694+00:00",
+    "updated_at": "2026-09-01T14:04:00.546694+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.187150+00:00"
+  },
+  "17841499998888111": {
+    "igsid": "17841499998888111",
+    "username": "eligible_creator",
+    "creator_id": "UC_eligible_001",
+    "instagram_url": "https://instagram.com/eligible_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.546694+00:00",
+    "updated_at": "2026-09-01T14:04:00.546694+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.187150+00:00"
+  },
+  "expired_window_creator": {
+    "igsid": "17841455555555555",
+    "username": "expired_window_creator",
+    "creator_id": "UC_expired_001",
+    "instagram_url": "https://instagram.com/expired_window_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.835605+00:00",
+    "updated_at": "2026-09-01T14:04:00.835605+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.388774+00:00"
+  },
+  "cid:UC_expired_001": {
+    "igsid": "17841455555555555",
+    "username": "expired_window_creator",
+    "creator_id": "UC_expired_001",
+    "instagram_url": "https://instagram.com/expired_window_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.835605+00:00",
+    "updated_at": "2026-09-01T14:04:00.835605+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.388774+00:00"
+  },
+  "17841455555555555": {
+    "igsid": "17841455555555555",
+    "username": "expired_window_creator",
+    "creator_id": "UC_expired_001",
+    "instagram_url": "https://instagram.com/expired_window_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T14:04:00.835605+00:00",
+    "updated_at": "2026-09-01T14:04:00.835605+00:00",
+    "first_interaction_at": "2026-09-01T13:29:55.388774+00:00"
   }
 }

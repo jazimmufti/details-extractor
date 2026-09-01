@@ -40,13 +40,13 @@ async def validate_input_node(state: ExtractionState) -> Dict[str, Any]:
 
 
 async def resolve_youtube_url_node(state: ExtractionState) -> Dict[str, Any]:
-    """Node 2: Parses and classifies YouTube URL format."""
-    logger.info("LangGraph Node [2/10]: Parsing and resolving YouTube URL structure...")
+    """Node 2: Parses and classifies YouTube or Instagram creator URL format."""
+    logger.info("LangGraph Node [2/10]: Parsing and resolving URL structure...")
     url = state.get("input_url", "")
     parsed = parse_youtube_url(url)
 
     if not parsed:
-        msg = f"Invalid or unsupported YouTube URL: '{url}'. Please provide a valid YouTube video, Short, @handle, or channel URL."
+        msg = f"Invalid or unsupported URL: '{url}'. Please provide a valid YouTube video, Short, @handle, channel URL, or Instagram profile link."
         logger.warning(msg)
         return {
             "errors": state.get("errors", []) + [msg],
@@ -60,17 +60,43 @@ async def resolve_youtube_url_node(state: ExtractionState) -> Dict[str, Any]:
         "url_type": parsed.url_type.value,
         "identifier": parsed.identifier,
         "video_id": parsed.identifier if parsed.url_type in (YouTubeURLType.VIDEO, YouTubeURLType.SHORT) else None,
-        "channel_id": parsed.identifier if parsed.url_type == YouTubeURLType.CHANNEL_ID else None,
-        "current_stage": "Resolving YouTube identifier",
+        "channel_id": parsed.identifier if parsed.url_type == YouTubeURLType.CHANNEL_ID else (f"ig_{parsed.identifier.lstrip('@')}" if parsed.url_type == YouTubeURLType.INSTAGRAM_PROFILE else None),
+        "current_stage": "Resolving creator identifier",
     }
 
 
 async def fetch_youtube_data_node(state: ExtractionState) -> Dict[str, Any]:
-    """Node 3: Retrieves official YouTube metadata via API and public channel profile."""
-    logger.info("LangGraph Node [3/10]: Fetching metadata from YouTube Data API and channel profile...")
+    """Node 3: Retrieves official YouTube metadata via API and channel profile, or Instagram creator profile."""
+    logger.info("LangGraph Node [3/10]: Fetching metadata...")
     parsed = state.get("parsed_target")
     if not parsed:
         return {"current_stage": "fetch_failed", "success": False}
+
+    if parsed.url_type == YouTubeURLType.INSTAGRAM_PROFILE:
+        handle = parsed.identifier.lstrip("@")
+        profile_url = f"https://www.instagram.com/{handle}/"
+        yt_info = YouTubeInfo(
+            channel_id=f"ig_{handle}",
+            channel_title=f"@{handle}",
+            custom_url=profile_url,
+            description=f"Instagram Creator Profile for @{handle}.",
+            subscriber_count=0,
+            view_count=0,
+            video_count=0,
+        )
+        raw_texts = [
+            f"Instagram Creator: @{handle}",
+            f"Profile URL: {profile_url}",
+            f"Bio: Discovered Instagram creator profile for @{handle}."
+        ]
+        profile_links = [profile_url]
+        return {
+            "youtube_info": yt_info,
+            "raw_texts": raw_texts,
+            "profile_links": profile_links,
+            "channel_id": yt_info.channel_id,
+            "current_stage": "Fetching Instagram creator data",
+        }
 
     try:
         yt_info, raw_texts, profile_links = youtube_service.fetch_target_data(parsed)
@@ -163,6 +189,7 @@ async def extract_urls_node(state: ExtractionState) -> Dict[str, Any]:
 async def classify_social_links_node(state: ExtractionState) -> Dict[str, Any]:
     """Node 7: Deterministically maps URLs to 12+ social platforms and websites with source attribution."""
     logger.info("LangGraph Node [7/10]: Classifying URLs into social platforms and websites...")
+    parsed = state.get("parsed_target")
     profile_links = state.get("profile_links", [])
     raw_urls = state.get("raw_urls", [])
     raw_texts = state.get("raw_texts", [])
@@ -174,6 +201,18 @@ async def classify_social_links_node(state: ExtractionState) -> Dict[str, Any]:
         text_content="",
         source="youtube_channel_profile"
     )
+
+    # If direct Instagram profile input, ensure Instagram social is explicitly recorded
+    if parsed and parsed.url_type == YouTubeURLType.INSTAGRAM_PROFILE:
+        clean_handle = parsed.identifier.lstrip("@")
+        profile_socials["instagram"] = SocialAccount(
+            platform="instagram",
+            username=f"@{clean_handle}",
+            url=f"https://www.instagram.com/{clean_handle}/",
+            evidence=f"Direct Instagram profile input: {parsed.original_url}",
+            confidence="High",
+            source="Direct Input",
+        )
 
     # 2. Extract from raw description URLs (source: youtube_description)
     desc_socials, desc_websites = extract_socials_and_websites(

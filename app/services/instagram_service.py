@@ -342,6 +342,7 @@ class InstagramMessagingService:
         instagram_url: Optional[str],
         message: str,
         action: str = "profile_opened_copied",
+        creator_name: Optional[str] = None,
     ) -> MessageRecord:
         """
         Records an auditable entry for cold / manual Instagram outreach.
@@ -350,23 +351,33 @@ class InstagramMessagingService:
         now_str = datetime.now(timezone.utc).isoformat()
         rec_id = str(uuid.uuid4())
         clean_user = instagram_username.lstrip("@").strip() if instagram_username else None
+        calc_status = "prepared" if action != "opened" else "manual_action_required"
 
         record = MessageRecord(
             id=rec_id,
+            creator=creator_name or clean_user,
+            creator_name=creator_name or clean_user,
             creator_id=creator_id,
             instagram_username=clean_user,
             instagram_url=instagram_url,
             meta_recipient_id=None,
+            recipient_identifier=None,
             meta_recipient_id_available=False,
             message=message,
+            message_text=message,
             message_type="outreach",
             mode="cold_outreach",
             delivery_method="manual_instagram",
-            status="prepared" if action != "opened" else "manual_action_required",
+            status=calc_status,
+            final_status=calc_status,
+            eligibility_result="manual_action_required",
             provider="instagram_direct",
             meta_message_id=None,
+            http_status=None,
+            api_response_status=None,
             error=None,
             created_at=now_str,
+            timestamp=now_str,
             prepared_at=now_str,
             sent_at=None,
             updated_at=now_str,
@@ -711,6 +722,8 @@ class InstagramMessagingService:
         
         norm_mode = "simulation" if (getattr(request, "mode", "real") == "simulation") else "real"
         idempotency_key = getattr(request, "idempotency_key", None)
+        creator_display = request.creator_name or (f"@{clean_username}" if clean_username else (request.creator_id or "Creator"))
+        clean_url = request.instagram_url or request.creator_url or (f"https://www.instagram.com/{clean_username}/" if clean_username else None)
 
         # 1. Idempotency Check
         if idempotency_key:
@@ -721,25 +734,77 @@ class InstagramMessagingService:
                     logger.info(f"Returning cached response for idempotency_key: {idempotency_key}")
                     return cached_response
 
-        # 2. LOCAL SIMULATION MODE
+        # 2. Check for completely unresolved account (no username, no URL, no IGSID)
+        if not clean_username and not clean_url and not target_user_id:
+            err_msg = "Instagram account could not be resolved from the request."
+            record = MessageRecord(
+                id=rec_id,
+                idempotency_key=idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
+                creator_id=request.creator_id,
+                instagram_username=None,
+                instagram_url=None,
+                meta_recipient_id=None,
+                recipient_identifier=None,
+                meta_recipient_id_available=False,
+                message=request.message,
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
+                mode=norm_mode,
+                delivery_method="manual_instagram",
+                status="account_unresolved",
+                final_status="account_unresolved",
+                eligibility_result="unresolved",
+                provider="meta" if norm_mode == "real" else "local",
+                error_code="ACCOUNT_UNRESOLVED",
+                error=err_msg,
+                created_at=now_str,
+                timestamp=now_str,
+                prepared_at=now_str,
+                sent_at=None,
+                updated_at=now_str,
+            )
+            _save_message_record(record)
+            return InstagramSendResponse(
+                success=False,
+                status="account_unresolved",
+                mode=norm_mode,
+                error_code="ACCOUNT_UNRESOLVED",
+                error=err_msg,
+                message=err_msg,
+                reason="No Instagram handle, profile URL, or recipient ID was provided in the request.",
+                details="Either instagram_username, instagram_url, or a valid recipient ID is required.",
+                eligibility_result="unresolved",
+                provider="meta" if norm_mode == "real" else "local",
+            )
+
+        # 3. LOCAL SIMULATION MODE
         if norm_mode == "simulation":
             logger.info("Executing message dispatch in LOCAL SIMULATION mode (Zero Meta API calls)")
             sim_record = MessageRecord(
                 id=rec_id,
                 idempotency_key=idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
-                instagram_url=request.creator_url,
+                instagram_url=clean_url,
                 meta_recipient_id=target_user_id or "sim_recipient_12345",
+                recipient_identifier=target_user_id or "sim_recipient_12345",
                 meta_recipient_id_available=False,
                 message=request.message,
-                message_type=request.message_type or "test",
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="simulation",
                 delivery_method="simulation",
                 status="simulated",
+                final_status="simulated",
+                eligibility_result="simulated_eligible",
                 provider="local",
                 meta_message_id=None,
                 created_at=now_str,
+                timestamp=now_str,
                 prepared_at=now_str,
                 sent_at=now_str,
                 updated_at=now_str,
@@ -753,6 +818,8 @@ class InstagramMessagingService:
                 message_id=None,
                 recipient_id=target_user_id or "sim_recipient_12345",
                 message="Local simulation succeeded",
+                reason="Local Simulation Mode: Pipeline tested locally without contacting Meta API.",
+                eligibility_result="simulated_eligible",
                 provider="local",
                 sent_at=now_str,
                 details="[LOCAL SIMULATION] Simulated successfully. No external Meta API calls were made.",
@@ -761,25 +828,33 @@ class InstagramMessagingService:
                 self._idempotency_cache[idempotency_key] = (time.time(), response)
             return response
 
-        # 3. REAL META MODE: Validate Configuration
+        # 4. REAL META MODE: Validate Configuration
         if not self.is_configured:
             err_msg = "Meta Instagram API is not configured on the server."
             record = MessageRecord(
                 id=rec_id,
                 idempotency_key=idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
-                instagram_url=request.creator_url,
+                instagram_url=clean_url,
                 meta_recipient_id=target_user_id,
+                recipient_identifier=target_user_id,
                 meta_recipient_id_available=False,
                 message=request.message,
-                message_type=request.message_type or "test",
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="real",
                 delivery_method="meta_api",
                 status="not_configured",
+                final_status="not_configured",
+                eligibility_result="not_configured",
                 provider="meta",
+                error_code="META_NOT_CONFIGURED",
                 error=err_msg,
                 created_at=now_str,
+                timestamp=now_str,
                 prepared_at=now_str,
                 updated_at=now_str,
             )
@@ -791,30 +866,40 @@ class InstagramMessagingService:
                 error_code="META_NOT_CONFIGURED",
                 error=err_msg,
                 message=err_msg,
-                details="INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_ACCOUNT_ID must be configured in .env.",
+                reason="Meta Instagram API credentials (INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_ACCOUNT_ID) are missing or incomplete in server configuration.",
+                details="Configure INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_ACCOUNT_ID in .env.",
+                eligibility_result="not_configured",
                 provider="meta",
             )
             return response
 
-        # 4. Reject invalid IGSID if explicitly provided as username or non-numeric
+        # 5. Reject invalid IGSID if explicitly provided as username or non-numeric
         if target_user_id and (target_user_id.startswith("@") or not target_user_id.isdigit()):
             err_msg = "A valid numeric Instagram-scoped recipient ID is required. Usernames cannot be used as IGSIDs."
             record = MessageRecord(
                 id=rec_id,
                 idempotency_key=idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
-                instagram_url=request.creator_url,
+                instagram_url=clean_url,
                 meta_recipient_id=None,
+                recipient_identifier=None,
                 meta_recipient_id_available=False,
                 message=request.message,
-                message_type=request.message_type or "test",
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="real",
                 delivery_method="manual_instagram",
                 status="not_messageable",
+                final_status="not_messageable",
+                eligibility_result="invalid_igsid",
                 provider="meta",
+                error_code="IGSID_REQUIRED",
                 error=err_msg,
                 created_at=now_str,
+                timestamp=now_str,
                 prepared_at=now_str,
                 updated_at=now_str,
             )
@@ -826,22 +911,27 @@ class InstagramMessagingService:
                 error_code="IGSID_REQUIRED",
                 error=err_msg,
                 message=err_msg,
+                reason="Usernames or non-numeric strings cannot be passed as Meta recipient IDs.",
                 details="Usernames or non-numeric strings are invalid as Meta recipient IDs.",
+                eligibility_result="invalid_igsid",
                 provider="meta",
             )
 
-        # 5. REAL META MODE: Check / Resolve legitimate IGSID from backend persistence
+        # 6. REAL META MODE: Check / Resolve legitimate IGSID from backend persistence
         if not target_user_id:
             resolved = resolve_recipient_for_creator(
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
-                instagram_url=request.creator_url,
+                instagram_url=clean_url,
             )
             if resolved and resolved.get("igsid"):
                 target_user_id = resolved["igsid"]
 
         if not target_user_id:
-            err_msg = "Unable to send automatically: recipient is not eligible for Meta messaging."
+            err_msg = (
+                "This Instagram account was found, but Meta does not currently allow this account "
+                "to be contacted through the connected Instagram Messaging API."
+            )
             details_msg = (
                 f"Discovered Instagram handle @{clean_username or 'creator'} has not established an active messaging session "
                 "with your connected Instagram Business account. Meta's official Graph API strictly requires a numeric "
@@ -850,19 +940,27 @@ class InstagramMessagingService:
             record = MessageRecord(
                 id=rec_id,
                 idempotency_key=idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
-                instagram_url=request.creator_url,
+                instagram_url=clean_url,
                 meta_recipient_id=None,
+                recipient_identifier=None,
                 meta_recipient_id_available=False,
                 message=request.message,
-                message_type=request.message_type or "test",
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="real",
                 delivery_method="manual_instagram",
                 status="not_messageable",
+                final_status="not_eligible",
+                eligibility_result="not_eligible",
                 provider="meta",
+                error_code="RECIPIENT_NOT_ELIGIBLE",
                 error=err_msg,
                 created_at=now_str,
+                timestamp=now_str,
                 prepared_at=now_str,
                 updated_at=now_str,
             )
@@ -874,12 +972,14 @@ class InstagramMessagingService:
                 error_code="RECIPIENT_NOT_ELIGIBLE",
                 error=err_msg,
                 message=err_msg,
+                reason=details_msg,
                 details=details_msg,
+                eligibility_result="not_eligible",
                 provider="meta",
             )
             return response
 
-        # 6. REAL META MODE: Dispatch Official Meta Graph API Request
+        # 7. REAL META MODE: Dispatch Official Meta Graph API Request
         account_id = settings.INSTAGRAM_ACCOUNT_ID
         token = settings.INSTAGRAM_ACCESS_TOKEN
         endpoint = f"{self.base_url}/{account_id}/messages"
@@ -912,20 +1012,28 @@ class InstagramMessagingService:
                     record = MessageRecord(
                         id=rec_id,
                         idempotency_key=request.idempotency_key,
+                        creator=creator_display,
+                        creator_name=request.creator_name,
                         creator_id=request.creator_id,
                         instagram_username=clean_username,
-                        instagram_url=request.creator_url,
+                        instagram_url=clean_url,
                         meta_recipient_id=meta_rec_id,
+                        recipient_identifier=meta_rec_id,
                         meta_recipient_id_available=True,
                         message=request.message,
-                        message_type=request.message_type,
+                        message_text=request.message,
+                        message_type=request.message_type or "outreach",
                         mode="real",
                         delivery_method="meta_api",
                         status="sent",
+                        final_status="sent",
+                        eligibility_result="eligible",
                         provider="meta",
                         meta_message_id=meta_msg_id,
                         http_status=status_code,
+                        api_response_status=status_code,
                         created_at=now_str,
+                        timestamp=now_str,
                         prepared_at=now_str,
                         sent_at=sent_timestamp,
                         updated_at=sent_timestamp,
@@ -938,6 +1046,9 @@ class InstagramMessagingService:
                         mode="real",
                         message_id=meta_msg_id,
                         recipient_id=meta_rec_id,
+                        message="Message sent successfully via Meta Graph API",
+                        reason="Official Meta Graph API confirmed message delivery to the recipient.",
+                        eligibility_result="eligible",
                         sent_at=sent_timestamp,
                         provider="meta",
                     )
@@ -956,25 +1067,34 @@ class InstagramMessagingService:
                     record = MessageRecord(
                         id=rec_id,
                         idempotency_key=request.idempotency_key,
+                        creator=creator_display,
+                        creator_name=request.creator_name,
                         creator_id=request.creator_id,
                         instagram_username=clean_username,
-                        instagram_url=request.creator_url,
+                        instagram_url=clean_url,
                         meta_recipient_id=target_user_id,
+                        recipient_identifier=target_user_id,
                         meta_recipient_id_available=True,
                         message=request.message,
-                        message_type=request.message_type,
+                        message_text=request.message,
+                        message_type=request.message_type or "outreach",
                         mode="real",
                         delivery_method="meta_api",
                         status="rejected",
+                        final_status="rejected",
+                        eligibility_result="meta_error",
                         provider="meta",
                         http_status=status_code,
+                        api_response_status=status_code,
                         meta_error_code=diagnostics.code,
+                        error_code=f"META_{diagnostics.code or status_code}",
                         meta_error_subcode=diagnostics.error_subcode,
                         meta_error_type=diagnostics.type,
                         meta_error_message=diagnostics.message,
                         fbtrace_id=diagnostics.fbtrace_id,
                         error=user_error,
                         created_at=now_str,
+                        timestamp=now_str,
                         prepared_at=now_str,
                         updated_at=now_str,
                     )
@@ -988,7 +1108,9 @@ class InstagramMessagingService:
                         error_code=f"META_{diagnostics.code or status_code}",
                         error=user_error,
                         message=user_error,
+                        reason=diagnostics.message or user_error,
                         details=diagnostics.message or f"HTTP {status_code} | code: {diagnostics.code} | trace: {diagnostics.fbtrace_id or 'none'}",
+                        eligibility_result="meta_error",
                         meta_diagnostics=diagnostics,
                         provider="meta",
                     )
@@ -1002,16 +1124,25 @@ class InstagramMessagingService:
             record = MessageRecord(
                 id=rec_id,
                 idempotency_key=request.idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=clean_url,
                 meta_recipient_id=target_user_id,
+                recipient_identifier=target_user_id,
                 message=request.message,
-                message_type=request.message_type,
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="real",
                 status="failed",
+                final_status="failed",
+                eligibility_result="meta_error",
                 provider="meta",
+                error_code="TIMEOUT",
                 error=err_msg,
                 created_at=now_str,
+                timestamp=now_str,
             )
             _save_message_record(record)
             return InstagramSendResponse(
@@ -1019,8 +1150,12 @@ class InstagramMessagingService:
                 status="failed",
                 mode="real",
                 recipient_id=target_user_id,
+                error_code="TIMEOUT",
                 error=err_msg,
+                message=err_msg,
+                reason="The Meta Graph API did not respond within the 15-second timeout window.",
                 details="HTTP Connection Timeout",
+                eligibility_result="meta_error",
                 provider="meta",
             )
         except Exception as e:
@@ -1029,16 +1164,25 @@ class InstagramMessagingService:
             record = MessageRecord(
                 id=rec_id,
                 idempotency_key=request.idempotency_key,
+                creator=creator_display,
+                creator_name=request.creator_name,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=clean_url,
                 meta_recipient_id=target_user_id,
+                recipient_identifier=target_user_id,
                 message=request.message,
-                message_type=request.message_type,
+                message_text=request.message,
+                message_type=request.message_type or "outreach",
                 mode="real",
                 status="failed",
+                final_status="failed",
+                eligibility_result="meta_error",
                 provider="meta",
+                error_code="CONNECTION_ERROR",
                 error=err_msg,
                 created_at=now_str,
+                timestamp=now_str,
             )
             _save_message_record(record)
             return InstagramSendResponse(
@@ -1046,8 +1190,12 @@ class InstagramMessagingService:
                 status="failed",
                 mode="real",
                 recipient_id=target_user_id,
+                error_code="CONNECTION_ERROR",
                 error=err_msg,
+                message=err_msg,
+                reason=str(e),
                 details=str(e),
+                eligibility_result="meta_error",
                 provider="meta",
             )
 

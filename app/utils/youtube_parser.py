@@ -13,6 +13,7 @@ class YouTubeURLType(str, Enum):
     CHANNEL_ID = "CHANNEL_ID"
     CUSTOM_CHANNEL = "CUSTOM_CHANNEL"
     USER_CHANNEL = "USER_CHANNEL"
+    INSTAGRAM_PROFILE = "INSTAGRAM_PROFILE"
     UNKNOWN = "UNKNOWN"
 
 
@@ -27,11 +28,16 @@ class ParsedYouTubeTarget(NamedTuple):
 VIDEO_ID_REGEX = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 CHANNEL_ID_REGEX = re.compile(r"^UC[a-zA-Z0-9_-]{22}$")
 HANDLE_REGEX = re.compile(r"^@[a-zA-Z0-9_.-]{3,30}$")
+INSTAGRAM_HANDLE_REGEX = re.compile(r"^[a-zA-Z0-9_.-]{1,30}$")
+INSTAGRAM_RESERVED_PATHS = {
+    "p", "reel", "reels", "stories", "explore", "direct",
+    "accounts", "developer", "legal", "about", "tv", "privacy"
+}
 
 
 def parse_youtube_url(url: str) -> Optional[ParsedYouTubeTarget]:
     """
-    Parses and validates any YouTube URL variant.
+    Parses and validates any YouTube or Instagram profile URL variant.
     Returns ParsedYouTubeTarget with URL type and core identifier or None if invalid.
     """
     if not url or not isinstance(url, str):
@@ -61,6 +67,27 @@ def parse_youtube_url(url: str) -> Optional[ParsedYouTubeTarget]:
 
     hostname = (parsed.hostname or "").lower()
     
+    # 0. Instagram Profile URL (e.g. https://www.instagram.com/rajshamani/)
+    valid_ig_domains = (
+        "instagram.com",
+        "www.instagram.com",
+        "instagr.am",
+        "m.instagram.com",
+    )
+    if any(hostname == d or hostname.endswith("." + d) for d in valid_ig_domains):
+        path = unquote(parsed.path or "").strip()
+        parts = [p for p in path.split("/") if p]
+        if parts:
+            first_segment = parts[0].lstrip("@").strip()
+            if first_segment.lower() not in INSTAGRAM_RESERVED_PATHS and INSTAGRAM_HANDLE_REGEX.match(first_segment):
+                return ParsedYouTubeTarget(
+                    url_type=YouTubeURLType.INSTAGRAM_PROFILE,
+                    identifier=f"@{first_segment}",
+                    canonical_url=f"https://www.instagram.com/{first_segment}/",
+                    original_url=url,
+                )
+        return None
+
     # Valid YouTube domains
     valid_domains = (
         "youtube.com",

@@ -271,6 +271,16 @@ async def get_instagram_outreach_status(
     )
 
 
+@router.post("/outreach/instagram/send", response_model=InstagramSendResponse)
+async def outreach_send_instagram_message(request: InstagramSendRequest, response: Response):
+    """
+    Dedicated endpoint for creator discovery Instagram outreach messaging.
+    Validates recipient eligibility under official Meta Graph API rules, executes
+    real Meta dispatch or local simulation, and records complete auditable logs.
+    """
+    return await send_instagram_message(request, response)
+
+
 @router.post("/instagram/send-message", response_model=InstagramSendResponse)
 async def send_official_instagram_message_alias(request: InstagramSendRequest, response: Response):
     """

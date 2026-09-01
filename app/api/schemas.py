@@ -16,6 +16,10 @@ from app.models.messaging_models import (
     OutreachGenerateResponse,
 )
 
+# Dedicated outreach aliases for POST /api/outreach/instagram/send
+InstagramOutreachSendRequest = InstagramSendRequest
+InstagramOutreachSendResponse = InstagramSendResponse
+
 
 class MessagingRecipientStatus(BaseModel):
     eligible: bool

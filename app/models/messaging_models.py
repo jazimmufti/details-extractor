@@ -147,14 +147,16 @@ class InstagramEligibilityResponse(BaseModel):
 class InstagramSendRequest(BaseModel):
     """Payload to send an Instagram Direct Message via official Meta API or simulation."""
     idempotency_key: Optional[str] = Field(default=None, description="Unique client key to prevent duplicate sends")
+    creator_name: Optional[str] = Field(default=None, description="Discovered creator or channel name")
     creator_id: Optional[str] = Field(default=None, description="Internal or external creator identifier")
     instagram_user_id: Optional[str] = Field(default=None, description="Meta Instagram-Scoped User ID (IGSID)")
     instagram_username: Optional[str] = Field(default=None, description="Discovered Instagram handle/username")
     creator_username: Optional[str] = Field(default=None, description="Alias for instagram_username")
     recipient_igsid: Optional[str] = Field(default=None, description="Alias for instagram_user_id")
-    creator_url: Optional[str] = Field(default=None, description="Discovered Instagram or channel URL")
+    instagram_url: Optional[str] = Field(default=None, description="Discovered Instagram or channel URL")
+    creator_url: Optional[str] = Field(default=None, description="Alias for instagram_url")
     message: str = Field(..., min_length=1, max_length=1000, description="Message text content")
-    message_type: str = Field(default="test", description="Message type: 'test' or 'outreach'")
+    message_type: str = Field(default="outreach", description="Message type: 'outreach' or 'test'")
     mode: str = Field(default="real", description="Dispatch mode: 'real' or 'simulation'")
 
 
@@ -171,14 +173,16 @@ class MetaErrorDiagnostics(BaseModel):
 class InstagramSendResponse(BaseModel):
     """Response returned after attempting a message send."""
     success: bool = Field(..., description="Whether Meta API confirmed delivery (or simulation succeeded)")
-    status: str = Field(..., description="Send status: 'sent', 'simulated', 'rejected', 'failed', 'not_configured', 'not_messageable'")
+    status: str = Field(..., description="Send status: 'sent', 'simulated', 'rejected', 'failed', 'not_configured', 'not_messageable', 'not_eligible', 'meta_error', 'account_unresolved'")
     mode: str = Field(default="real", description="'real' or 'simulation'")
     message_id: Optional[str] = Field(default=None, description="Meta message ID (None in simulation)")
     recipient_id: Optional[str] = Field(default=None, description="Recipient identifier")
     error_code: Optional[str] = Field(default=None, description="Standardized error code (e.g. RECIPIENT_NOT_ELIGIBLE)")
     error: Optional[str] = Field(default=None, description="Human-readable error explanation")
     message: Optional[str] = Field(default=None, description="Convenience message text")
+    reason: Optional[str] = Field(default=None, description="Detailed explanatory reason")
     details: Optional[str] = Field(default=None, description="Technical diagnostics")
+    eligibility_result: Optional[str] = Field(default=None, description="Eligibility evaluation state")
     provider: str = Field(default="meta", description="'meta' or 'local'")
     sent_at: Optional[str] = Field(default=None, description="ISO timestamp")
     meta_diagnostics: Optional[MetaErrorDiagnostics] = None
@@ -188,26 +192,35 @@ class MessageRecord(BaseModel):
     """Auditable log entry for recorded message attempts."""
     id: str
     idempotency_key: Optional[str] = None
+    creator: Optional[str] = None  # Creator display name / channel name
+    creator_name: Optional[str] = None
     creator_id: Optional[str] = None
     instagram_username: Optional[str] = None
     instagram_url: Optional[str] = None
     meta_recipient_id: Optional[str] = None
+    recipient_identifier: Optional[str] = None  # Meta-supported recipient identifier
     meta_recipient_id_available: bool = False
     message: str
+    message_text: Optional[str] = None
     message_type: str = "outreach"
     mode: str = "real"  # "real", "simulation", "cold_outreach"
     delivery_method: str = "manual_instagram"  # "meta_api", "manual_instagram", "simulation"
-    status: str  # "prepared", "opened", "manual_action_required", "sent", "simulated", "rejected", "failed"
+    status: str  # "prepared", "opened", "manual_action_required", "sent", "simulated", "rejected", "failed", "not_configured", "not_messageable"
+    final_status: Optional[str] = None
+    eligibility_result: Optional[str] = None  # "eligible", "not_eligible", "interaction_required", "not_configured"
     provider: str = "instagram_direct"  # "instagram_direct", "meta", "local"
     meta_message_id: Optional[str] = None
     http_status: Optional[int] = None
+    api_response_status: Optional[int] = None
     meta_error_code: Optional[int] = None
+    error_code: Optional[str] = None
     meta_error_subcode: Optional[int] = None
     meta_error_type: Optional[str] = None
     meta_error_message: Optional[str] = None
     fbtrace_id: Optional[str] = None
     error: Optional[str] = None
     created_at: str
+    timestamp: Optional[str] = None
     prepared_at: Optional[str] = None
     sent_at: Optional[str] = None
     updated_at: Optional[str] = None

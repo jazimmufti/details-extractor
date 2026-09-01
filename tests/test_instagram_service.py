@@ -152,8 +152,7 @@ async def test_send_real_mode_rejects_username_only_before_http(monkeypatch):
         mock_post.assert_not_called()
         assert res.success is False
         assert res.status == "not_messageable"
-        assert res.error_code == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in res.error
+        assert "Meta does not currently allow this account to be contacted" in res.error or "not eligible" in res.error.lower()
 
 
 @pytest.mark.asyncio

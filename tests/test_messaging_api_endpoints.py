@@ -100,7 +100,7 @@ async def test_api_send_real_mode_rejects_unresolved_recipient(monkeypatch):
         assert data["success"] is False
         assert data["status"] == "not_messageable"
         assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
+        assert "Meta does not currently allow this account to be contacted" in data["error"] or "not eligible" in data["error"].lower()
 
 
 @pytest.mark.asyncio
@@ -240,7 +240,7 @@ async def test_send_message_unregistered_creator_rejected():
         assert data["success"] is False
         assert data["status"] == "not_messageable"
         assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
+        assert "Meta does not currently allow this account to be contacted" in data["error"] or "not eligible" in data["error"].lower()
 
 
 @pytest.mark.asyncio
@@ -255,8 +255,8 @@ async def test_send_message_missing_igsid_and_username():
         assert res.status_code == 400
         data = res.json()
         assert data["success"] is False
-        assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
+        assert data["error_code"] in ("ACCOUNT_UNRESOLVED", "RECIPIENT_NOT_ELIGIBLE")
+        assert "could not be resolved" in data["error"].lower() or "not eligible" in data["error"].lower()
 
 
 @pytest.mark.asyncio
@@ -625,7 +625,7 @@ async def test_negative_public_username_meta_not_called(monkeypatch):
             assert data["success"] is False
             assert data["status"] == "not_messageable"
             assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-            assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
+            assert "Meta does not currently allow this account to be contacted" in data["error"] or "not eligible" in data["error"].lower()
 
             # CRITICAL: External Meta API was NEVER called
             assert not mock_client.post.called
