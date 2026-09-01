@@ -275,8 +275,8 @@
                   <span id="discovered-ig-username" class="highlight-ig">username</span>
                 </div>
                 <div class="ig-card-actions">
-                  <button type="button" id="quick-send-ig-btn" class="mini-action-btn primary-mini-btn" title="Send Instagram Direct Message">
-                    <i class="fa-brands fa-instagram"></i> <span id="quick-send-btn-label">Send Message</span>
+                  <button type="button" id="quick-send-ig-btn" class="mini-action-btn primary-mini-btn" title="Open Creator Outreach Workspace">
+                    <i class="fa-brands fa-instagram"></i> <span id="quick-send-btn-label">Instagram Outreach</span>
                   </button>
                   <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn secondary-mini-btn" title="View Profile on Instagram">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>View Profile</span>
@@ -284,21 +284,21 @@
                 </div>
               </div>
 
-              <!-- Meta Messaging Status Snippet -->
+              <!-- Outreach Delivery Status Snippet -->
               <div class="ig-messaging-status-snippet" id="ig-card-messaging-status">
                 <div class="status-snippet-row">
-                  <span class="snippet-label">Meta Messaging:</span>
-                  <span id="ig-card-capability-badge" class="pill-badge pill-neutral">Ready to Send</span>
+                  <span class="snippet-label">Delivery:</span>
+                  <span id="ig-card-capability-badge" class="pill-badge pill-neutral">Instagram — manual send</span>
                 </div>
                 <p id="ig-card-capability-hint" class="status-snippet-hint">
-                  Click "Send Message" to attempt direct delivery via Meta API.
+                  Personalized message is ready. User send required on Instagram.
                 </p>
               </div>
 
               <div class="evidence-source-tag">
                 <i class="fa-solid fa-circle-check"></i> <span id="ig-evidence-text">Discovered from verified channel link</span>
-                <button type="button" id="open-meta-rules-btn" class="meta-rules-link-btn" title="Learn why Meta requires prior interaction for cold DMs">
-                  <i class="fa-solid fa-circle-question"></i> Meta Rules
+                <button type="button" id="open-meta-rules-btn" class="meta-rules-link-btn" title="Learn about official Meta API rules and manual outreach">
+                  <i class="fa-solid fa-circle-question"></i> Delivery Rules
                 </button>
               </div>
             </div>
@@ -372,53 +372,54 @@
         </div>
       </section>
 
-      <!-- 4. INSTAGRAM MESSAGING CONSOLE (Strict Separation of Discovery vs Messaging Capability) -->
+      <!-- 4. INSTAGRAM OUTREACH & MESSAGING CONSOLE -->
       <section class="section-card instagram-messaging-section glass-panel">
         <div class="section-header-row">
           <div class="section-title-wrap">
             <i class="fa-brands fa-instagram section-icon ig-color-icon"></i>
             <div>
               <div class="heading-with-badge">
-                <h3 class="section-heading">Instagram Messaging</h3>
-                <span id="console-mode-badge" class="mode-badge real">REAL META API</span>
+                <h3 class="section-heading">Instagram Outreach</h3>
+                <span id="console-mode-badge" class="mode-badge real">REAL MODE</span>
               </div>
-              <p class="section-caption">Official Meta Graph API messaging client & local test simulator</p>
+              <p class="section-caption">Automated Meta API delivery & manual Instagram outreach handoff</p>
             </div>
           </div>
 
-          <!-- Eligibility Pill -->
+          <!-- Outreach Status Pill -->
           <div id="messaging-eligibility-pill" class="eligibility-status-pill pill-neutral">
-            <span class="pill-dot"></span> Checking Eligibility
+            <span class="pill-dot"></span> Checking Status
           </div>
         </div>
 
-        <!-- Explanatory Capability Banner -->
+        <!-- Explanatory Delivery Banner -->
         <div id="eligibility-banner" class="eligibility-banner info-mode">
           <div class="banner-layout">
             <i class="fa-solid fa-circle-info banner-status-icon" id="eligibility-banner-icon"></i>
             <div class="banner-text-content">
-              <h5 id="eligibility-banner-title">Meta Graph API Messaging Capability</h5>
+              <h5 id="eligibility-banner-title">Outreach Delivery Method</h5>
               <p id="eligibility-banner-desc">
-                Evaluating discovered Instagram handle against official Meta Graph API messaging rules...
+                Evaluating delivery options for discovered creator...
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Alternative Outreach Path Banner (Displayed when Instagram is not messageable via API) -->
+        <!-- Alternative Outreach Path Banner (Displayed when business email is discovered) -->
         <div id="alt-outreach-banner" class="alt-outreach-card glass-panel" style="display: none;">
           <div class="alt-outreach-layout">
             <div class="alt-icon-wrap"><i class="fa-solid fa-envelope-open-text"></i></div>
             <div class="alt-text-wrap">
               <h4>Alternative Outreach Channel Available</h4>
-              <p>Direct Meta Instagram DM is unavailable without creator interaction, but a <strong>verified business email</strong> was discovered for this creator.</p>
+              <p>A <strong>verified business email</strong> was also discovered for this creator.</p>
             </div>
             <button type="button" id="use-email-outreach-btn" class="alt-action-btn">
               <i class="fa-solid fa-copy"></i> Copy Outreach for Email
             </button>
           </div>
         </div>
-        <!-- Automated Direct Messaging Console -->
+
+        <!-- Outreach Action Console Card -->
         <div class="messaging-console-card">
           <div class="console-meta-grid">
             <div class="console-meta-field">
@@ -426,12 +427,12 @@
               <span id="console-discovery-val" class="console-meta-value text-muted">Not discovered</span>
             </div>
             <div class="console-meta-field">
-              <span class="console-meta-label">2. Recipient Status:</span>
+              <span class="console-meta-label">2. Outreach Status:</span>
               <span id="console-recipient-val" class="console-meta-value text-muted">Evaluating...</span>
             </div>
             <div class="console-meta-field">
-              <span class="console-meta-label">3. Messaging Mode:</span>
-              <span id="console-capability-val" class="console-meta-value highlight-ig">Meta Graph API</span>
+              <span class="console-meta-label">3. Delivery Method:</span>
+              <span id="console-capability-val" class="console-meta-value highlight-ig">Instagram — manual send</span>
             </div>
           </div>
 
@@ -448,30 +449,38 @@
           <!-- Active Message Preview Box -->
           <div class="message-preview-container">
             <div class="message-preview-header">
-              <span><i class="fa-regular fa-comment-dots"></i> Message Content to Dispatch:</span>
+              <span><i class="fa-regular fa-comment-dots"></i> Message Content for Outreach:</span>
               <span class="msg-type-indicator" id="active-msg-type-label">Fixed Test DM</span>
             </div>
-            <textarea id="active-dispatch-textarea" class="active-dispatch-textarea" rows="3">Hi! This is a test message from my AI creator outreach application.</textarea>
+            <textarea id="active-dispatch-textarea" class="active-dispatch-textarea" rows="3">Hi! This is a personalized outreach message from my creator outreach workspace.</textarea>
           </div>
 
           <!-- Send Action Bar & Dynamic Result -->
-          <div class="send-action-row">
+          <div class="send-action-row" id="send-action-row">
             <div class="send-status-display" id="send-status-display">
               <!-- Dynamic status message rendered here -->
             </div>
 
-            <button type="button" id="send-instagram-btn" class="primary-send-btn">
-              <span class="btn-text" id="send-btn-main-label"><i class="fa-brands fa-instagram"></i> Send</span>
-              <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending...</span>
-            </button>
+            <div class="action-buttons-group" id="outreach-actions-group" style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" id="console-copy-msg-btn" class="control-btn" style="height: 42px; padding: 0 16px;" title="Copy message to clipboard">
+                <i class="fa-regular fa-copy"></i> <span>Copy Message</span>
+              </button>
+              <button type="button" id="open-ig-continue-btn" class="primary-send-btn manual-ig-btn" style="display: none;" title="Open Instagram profile to complete DM">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>Open Instagram & Continue</span>
+              </button>
+              <button type="button" id="send-instagram-btn" class="primary-send-btn api-send-btn" style="display: none;" title="Send via Meta Graph API">
+                <span class="btn-text" id="send-btn-main-label"><i class="fa-brands fa-instagram"></i> Send</span>
+                <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending...</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Direct API Send Result Card -->
+          <!-- Direct API Send / Manual Result Card -->
           <div id="send-result-card" class="send-result-card" style="display: none;">
             <div class="result-card-inner">
               <i class="result-card-icon" id="result-icon"></i>
               <div class="result-card-details">
-                <h4 id="result-title">Message Status</h4>
+                <h4 id="result-title">Outreach Status</h4>
                 <p id="result-message">Details...</p>
                 <div id="result-meta-info" class="result-meta-info" style="display: none;">
                   <span class="meta-item">Message ID: <code id="result-msg-id">--</code></span>
@@ -479,7 +488,7 @@
                   <span class="meta-item">Timestamp: <span id="result-timestamp">--</span></span>
                 </div>
                 <button type="button" id="retry-send-btn" class="retry-btn" style="display: none;">
-                  <i class="fa-solid fa-rotate-right"></i> Retry Send
+                  <i class="fa-solid fa-rotate-right"></i> Retry
                 </button>
               </div>
             </div>
@@ -488,13 +497,13 @@
       </section>
 
       <!-- 5. AUDITABLE EVIDENCE TRAIL (Collapsible) -->
-      <section id="evidence-trail-section" class="section-card evidence-trail-section glass-panel" style="display: none;">
-        <div class="section-header-row">
-          <div class="section-title-wrap">
-            <i class="fa-solid fa-shield-halved section-icon"></i>
+      <section id="evidence-trail-section" class="section-card evidence-section glass-panel">
+        <div class="evidence-header-row" id="toggle-evidence-section">
+          <div class="evidence-title-group">
+            <i class="fa-solid fa-fingerprint section-icon evidence-icon"></i>
             <div>
-              <h3 class="section-heading">Auditable Evidence Trail</h3>
-              <p class="section-subheading">Verified discovery citations, confidence scores, and logged outreach actions</p>
+              <h3 class="section-heading">Verified Evidence Trail</h3>
+              <p class="section-caption">Transparent audit trail linking every extracted datum to its public source</p>
             </div>
           </div>
           <button id="close-evidence-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
@@ -520,15 +529,15 @@
     </div>
   </main>
 
-  <!-- Instagram Direct Message Send Modal -->
+  <!-- Instagram Outreach Dialog Modal -->
   <div id="quick-send-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quick-send-modal-title">
     <div class="modal-window quick-send-modal-window glass-panel">
       <div class="modal-header">
         <div class="modal-title-group">
           <div class="icon-circle instagram-icon-circle"><i class="fa-brands fa-instagram"></i></div>
           <div>
-            <h3 id="quick-send-modal-title">Instagram Direct Message</h3>
-            <p id="quick-send-modal-subtitle">Official Meta Graph API Automated Delivery</p>
+            <h3 id="quick-send-modal-title">Instagram Outreach</h3>
+            <p id="quick-send-modal-subtitle">Direct Message Preparation & Delivery</p>
           </div>
         </div>
         <button id="close-quick-send-modal-btn" class="modal-close-icon" title="Close dialog (Esc)"><i class="fa-solid fa-xmark"></i></button>
@@ -542,15 +551,15 @@
             <span id="quick-modal-recipient-username" class="quick-meta-val highlight-ig">@username</span>
           </div>
           <div class="quick-meta-card">
-            <span class="quick-meta-label">Delivery Channel:</span>
-            <span id="quick-modal-status-badge" class="pill-badge pill-neutral">Meta Send API</span>
+            <span class="quick-meta-label">Delivery Method:</span>
+            <span id="quick-modal-status-badge" class="pill-badge pill-neutral">Instagram — manual send</span>
           </div>
         </div>
 
         <!-- Guidance Box -->
         <div id="quick-modal-eligibility-box" class="quick-eligibility-box checking">
           <p id="quick-modal-status-explanation" class="quick-status-explanation">
-            Click <strong>"Send"</strong> to attempt automated message delivery through Meta's official API.
+            Personalized message is ready. Click "Open Instagram & Continue" to complete outreach.
           </p>
         </div>
 
@@ -569,7 +578,7 @@
           <div class="result-card-inner">
             <i class="result-card-icon" id="quick-result-icon"></i>
             <div class="result-card-details">
-              <h4 id="quick-result-title">Message Status</h4>
+              <h4 id="quick-result-title">Outreach Status</h4>
               <p id="quick-result-message">Message details...</p>
               <div id="quick-result-meta-info" class="result-meta-info" style="display: none;">
                 <span class="meta-item">Message ID: <code id="quick-result-msg-id">--</code></span>
@@ -581,9 +590,15 @@
         </div>
       </div>
 
-      <div class="modal-footer quick-send-modal-footer">
+      <div class="modal-footer quick-send-modal-footer" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
         <button type="button" id="quick-modal-cancel-btn" class="secondary-btn">Cancel</button>
-        <button type="button" id="quick-modal-send-btn" class="primary-send-btn">
+        <button type="button" id="quick-modal-copy-msg-btn" class="secondary-btn">
+          <i class="fa-regular fa-copy"></i> <span>Copy Message</span>
+        </button>
+        <button type="button" id="quick-modal-open-ig-btn" class="primary-send-btn manual-ig-btn" style="display: none;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>Open Instagram & Continue</span>
+        </button>
+        <button type="button" id="quick-modal-send-btn" class="primary-send-btn api-send-btn" style="display: none;">
           <span class="btn-text" id="quick-send-modal-btn-text"><i class="fa-brands fa-instagram"></i> Send</span>
           <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending...</span>
         </button>

@@ -8,6 +8,9 @@ from app.models.messaging_models import (
     InstagramSendResponse,
     InstagramEligibilityRequest,
     InstagramEligibilityResponse,
+    OutreachDeliveryInfo,
+    OutreachStatus,
+    DeliveryMethod,
     MessageRecord,
     OutreachGenerateRequest,
     OutreachGenerateResponse,
@@ -23,12 +26,20 @@ class MessagingRecipientStatus(BaseModel):
 
 
 class RecipientStatusResponse(BaseModel):
-    """Response for GET /api/instagram/recipient-status."""
+    """Response for GET /api/instagram/recipient-status and /api/instagram/outreach/status."""
     success: bool
     creator_id: Optional[str] = None
     instagram_username: Optional[str] = None
     instagram_url: Optional[str] = None
+    outreach_status: str = "ready_for_outreach"
+    delivery: OutreachDeliveryInfo
+    meta_recipient_id_available: bool = False
     messaging: MessagingRecipientStatus
+
+
+class OutreachStatusResponse(RecipientStatusResponse):
+    """Aliased schema for /api/instagram/outreach/status."""
+    pass
 
 
 class InstagramSendMessageRequest(BaseModel):

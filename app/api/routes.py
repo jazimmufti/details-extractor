@@ -253,6 +253,24 @@ async def get_instagram_recipient_status(
     )
 
 
+@router.get("/instagram/outreach/status", response_model=RecipientStatusResponse)
+async def get_instagram_outreach_status(
+    creator_id: Optional[str] = Query(None),
+    instagram_username: Optional[str] = Query(None),
+    instagram_url: Optional[str] = Query(None),
+    mode: str = Query("real"),
+):
+    """
+    Retrieves the complete outreach state and delivery method for a creator.
+    """
+    return instagram_service.get_outreach_status(
+        creator_id=creator_id,
+        instagram_username=instagram_username,
+        instagram_url=instagram_url,
+        mode=mode,
+    )
+
+
 @router.post("/instagram/send-message", response_model=InstagramSendResponse)
 async def send_official_instagram_message_alias(request: InstagramSendRequest, response: Response):
     """

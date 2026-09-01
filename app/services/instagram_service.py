@@ -103,10 +103,14 @@ def _save_recipient_to_registry(
         _ensure_data_files()
         registry = _load_recipients_registry()
         clean_user = username.lstrip("@").lower().strip() if username else None
+        clean_igsid = igsid.strip() if igsid else None
         now_str = datetime.now(timezone.utc).isoformat()
         
+        if not clean_igsid:
+            return
+
         record = {
-            "igsid": igsid.strip(),
+            "igsid": clean_igsid,
             "username": clean_user,
             "creator_id": creator_id,
             "instagram_url": instagram_url or (f"https://instagram.com/{clean_user}" if clean_user else None),
@@ -125,6 +129,9 @@ def _save_recipient_to_registry(
 
         if creator_id:
             registry[f"cid:{creator_id}"] = record
+
+        # Also store by IGSID key for reverse/direct lookups
+        registry[clean_igsid] = record
 
         RECIPIENTS_FILE.write_text(json.dumps(registry, indent=2), encoding="utf-8")
     except Exception as e:
@@ -178,6 +185,62 @@ def resolve_recipient_for_creator(
     return None
 
 
+def resolve_delivery_method(
+    creator_id: Optional[str] = None,
+    instagram_username: Optional[str] = None,
+    instagram_url: Optional[str] = None,
+    mode: str = "real",
+) -> Dict[str, Any]:
+    """
+    Authoritative backend resolver for creator outreach delivery method.
+    
+    Principles:
+    1. Every discovered creator is valid for OUTREACH.
+    2. Lack of an IGSID affects DELIVERY METHOD, not CREATOR OUTREACH ELIGIBILITY.
+    3. Returns:
+       - 'meta_api' if a verified IGSID exists and server has valid Meta configuration.
+       - 'manual_instagram' if creator has public username only (user-mediated handoff).
+       - 'simulation' if in simulation mode.
+    """
+    clean_user = instagram_username.lstrip("@").strip() if instagram_username else None
+
+    if mode == "simulation":
+        return {
+            "method": "simulation",
+            "messageable": True,
+            "status": "ready_for_outreach",
+            "label": "Local Simulation",
+            "details": "Simulation mode active. Test pipeline locally without making external Meta API calls.",
+            "can_attempt_api_send": True,
+        }
+
+    # Check for verified stored Meta recipient identity
+    resolved = resolve_recipient_for_creator(
+        creator_id=creator_id,
+        instagram_username=clean_user,
+        instagram_url=instagram_url,
+    )
+
+    if resolved and resolved.get("igsid") and settings.has_meta_configured:
+        return {
+            "method": "meta_api",
+            "messageable": True,
+            "status": "api_messageable",
+            "label": "Instagram — Meta API",
+            "details": "✓ Official Meta Graph API delivery available (connected conversation active).",
+            "can_attempt_api_send": True,
+        }
+
+    return {
+        "method": "manual_instagram",
+        "messageable": False,
+        "status": "manual_instagram_required",
+        "label": "Instagram — manual send",
+        "details": "Instagram outreach ready. Automated Meta delivery unavailable for this creator; user send required.",
+        "can_attempt_api_send": False,
+    }
+
+
 class InstagramMessagingService:
     """Official Meta Instagram Graph API Client and Messaging Controller."""
 
@@ -211,9 +274,12 @@ class InstagramMessagingService:
             return False
         
         try:
-            expected_sig = signature_header.replace("sha256=", "").strip()
+            expected_sig = signature_header
+            if expected_sig.startswith("sha256="):
+                expected_sig = expected_sig[7:]
+            
             mac = hmac.new(
-                key=settings.META_APP_SECRET.encode("utf-8"),
+                settings.META_APP_SECRET.encode("utf-8"),
                 msg=payload_bytes,
                 digestmod=hashlib.sha256
             )
@@ -225,27 +291,45 @@ class InstagramMessagingService:
     def ingest_webhook_event(self, event_data: Dict[str, Any]) -> int:
         """
         Parses Meta Instagram Webhook payload and persists any verified sender IGSIDs.
+        Handles messaging, standby, changes (comments, mentions), and referral/optin events.
         Returns the number of recipients updated.
         """
         updated_count = 0
         try:
             for entry in event_data.get("entry", []):
-                # 1. Check messaging events
-                for messaging in entry.get("messaging", []):
-                    sender_id = messaging.get("sender", {}).get("id")
-                    # If sender profile/username is present in payload
-                    sender_username = messaging.get("sender", {}).get("username")
-                    if sender_id and sender_username:
-                        _save_recipient_to_registry(sender_username, sender_id, source="webhook_messaging")
+                # 1. Check messaging & standby events
+                messaging_list = entry.get("messaging", []) + entry.get("standby", [])
+                for messaging in messaging_list:
+                    sender = messaging.get("sender", {})
+                    sender_id = sender.get("id")
+                    sender_username = sender.get("username") or messaging.get("sender_username")
+                    
+                    # Check optin / referral / postback for creator_id metadata
+                    optin_ref = messaging.get("optin", {}).get("ref") or messaging.get("referral", {}).get("ref")
+                    postback_payload = messaging.get("postback", {}).get("payload")
+                    creator_id = optin_ref or postback_payload
+                    
+                    if sender_id:
+                        _save_recipient_to_registry(
+                            username=sender_username,
+                            igsid=sender_id,
+                            creator_id=creator_id,
+                            source="webhook_messaging"
+                        )
                         updated_count += 1
-                # 2. Check changes events (comments, mentions)
+
+                # 2. Check changes events (comments, mentions, messages)
                 for change in entry.get("changes", []):
                     val = change.get("value", {})
-                    user_info = val.get("from", {})
-                    user_id = user_info.get("id")
-                    username = user_info.get("username")
-                    if user_id and username:
-                        _save_recipient_to_registry(username, user_id, source="webhook_change")
+                    user_info = val.get("from", {}) or val.get("sender", {}) or val.get("user", {})
+                    user_id = user_info.get("id") or val.get("sender_id") or val.get("user_id")
+                    username = user_info.get("username") or val.get("username")
+                    if user_id:
+                        _save_recipient_to_registry(
+                            username=username,
+                            igsid=user_id,
+                            source="webhook_change"
+                        )
                         updated_count += 1
         except Exception as e:
             logger.error(f"Error ingesting webhook event: {e}")
@@ -260,7 +344,7 @@ class InstagramMessagingService:
         action: str = "profile_opened_copied",
     ) -> MessageRecord:
         """
-        Records an auditable entry for cold Instagram outreach.
+        Records an auditable entry for cold / manual Instagram outreach.
         Strictly never claims the message was 'sent', as delivery is performed manually by the user.
         """
         now_str = datetime.now(timezone.utc).isoformat()
@@ -271,19 +355,88 @@ class InstagramMessagingService:
             id=rec_id,
             creator_id=creator_id,
             instagram_username=clean_user,
+            instagram_url=instagram_url,
             meta_recipient_id=None,
+            meta_recipient_id_available=False,
             message=message,
             message_type="outreach",
             mode="cold_outreach",
-            status="prepared",
+            delivery_method="manual_instagram",
+            status="prepared" if action != "opened" else "manual_action_required",
             provider="instagram_direct",
             meta_message_id=None,
             error=None,
             created_at=now_str,
+            prepared_at=now_str,
             sent_at=None,
+            updated_at=now_str,
         )
         _save_message_record(record)
         return record
+
+    def resolve_delivery_method(
+        self,
+        creator_id: Optional[str] = None,
+        instagram_username: Optional[str] = None,
+        instagram_url: Optional[str] = None,
+        mode: str = "real",
+    ) -> Dict[str, Any]:
+        """Method wrapper around resolve_delivery_method resolver."""
+        return resolve_delivery_method(
+            creator_id=creator_id,
+            instagram_username=instagram_username,
+            instagram_url=instagram_url,
+            mode=mode,
+        )
+
+    def get_outreach_status(
+        self,
+        creator_id: Optional[str] = None,
+        instagram_username: Optional[str] = None,
+        instagram_url: Optional[str] = None,
+        mode: str = "real",
+    ) -> Dict[str, Any]:
+        """
+        Retrieves the complete outreach and delivery method state for a creator.
+        Authoritative source of truth for frontend outreach composer.
+        """
+        clean_user = instagram_username.lstrip("@").strip() if instagram_username else None
+        canonical_url = instagram_url
+        if not canonical_url and clean_user:
+            canonical_url = f"https://www.instagram.com/{clean_user}/"
+
+        delivery_info = resolve_delivery_method(
+            creator_id=creator_id,
+            instagram_username=clean_user,
+            instagram_url=canonical_url,
+            mode=mode,
+        )
+
+        meta_available = (delivery_info["method"] == "meta_api")
+        resolved = resolve_recipient_for_creator(
+            creator_id=creator_id,
+            instagram_username=clean_user,
+            instagram_url=canonical_url,
+        )
+
+        outreach_stat = "api_messageable" if meta_available else ("ready_for_outreach" if clean_user else "not_discovered")
+
+        return {
+            "success": True,
+            "creator_id": creator_id or (resolved.get("creator_id") if resolved else None),
+            "instagram_username": f"@{clean_user}" if clean_user else None,
+            "instagram_url": canonical_url,
+            "outreach_status": outreach_stat,
+            "delivery": delivery_info,
+            "meta_recipient_id_available": meta_available,
+            "messaging": {
+                "eligible": delivery_info["messageable"],
+                "status": "eligible" if delivery_info["messageable"] else "manual_send_required",
+                "reason": delivery_info["details"],
+                "source": (resolved.get("source") or "meta_webhook") if resolved else "cold_outreach",
+                "last_interaction_at": resolved.get("last_interaction_at") if resolved else None,
+            }
+        }
 
     def get_recipient_status(
         self,
@@ -296,57 +449,12 @@ class InstagramMessagingService:
         Retrieves recipient messaging status for the frontend send composer.
         Does NOT expose raw IGSID to frontend JavaScript.
         """
-        clean_user = instagram_username.lstrip("@").strip() if instagram_username else None
-        canonical_url = instagram_url or (f"https://www.instagram.com/{clean_user}/" if clean_user else None)
-        
-        if mode == "simulation":
-            return {
-                "success": True,
-                "creator_id": creator_id,
-                "instagram_username": f"@{clean_user}" if clean_user else None,
-                "instagram_url": canonical_url,
-                "messaging": {
-                    "eligible": True,
-                    "status": "eligible",
-                    "reason": "Local simulation mode active.",
-                    "source": "simulation",
-                }
-            }
-
-        # Resolve stored identity
-        resolved = resolve_recipient_for_creator(
+        return self.get_outreach_status(
             creator_id=creator_id,
-            instagram_username=clean_user,
+            instagram_username=instagram_username,
             instagram_url=instagram_url,
+            mode=mode,
         )
-
-        if resolved and resolved.get("igsid") and self.is_configured:
-            return {
-                "success": True,
-                "creator_id": creator_id or resolved.get("creator_id"),
-                "instagram_username": f"@{clean_user}" if clean_user else (f"@{resolved.get('username')}" if resolved.get("username") else None),
-                "instagram_url": canonical_url or resolved.get("instagram_url"),
-                "messaging": {
-                    "eligible": True,
-                    "status": "eligible",
-                    "reason": "Meta messaging available",
-                    "source": resolved.get("source") or resolved.get("resolved_via") or "meta_webhook",
-                    "last_interaction_at": resolved.get("last_interaction_at"),
-                }
-            }
-
-        # Cold outreach ready (No established Meta conversation)
-        return {
-            "success": True,
-            "creator_id": creator_id,
-            "instagram_username": f"@{clean_user}" if clean_user else None,
-            "instagram_url": canonical_url,
-            "messaging": {
-                "eligible": False,
-                "status": "interaction_required",
-                "reason": "Outreach ready",
-            }
-        }
 
     async def check_eligibility(
         self,
@@ -621,15 +729,20 @@ class InstagramMessagingService:
                 idempotency_key=idempotency_key,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=request.creator_url,
                 meta_recipient_id=target_user_id or "sim_recipient_12345",
+                meta_recipient_id_available=False,
                 message=request.message,
                 message_type=request.message_type or "test",
                 mode="simulation",
+                delivery_method="simulation",
                 status="simulated",
                 provider="local",
                 meta_message_id=None,
                 created_at=now_str,
+                prepared_at=now_str,
                 sent_at=now_str,
+                updated_at=now_str,
             )
             _save_message_record(sim_record)
 
@@ -656,14 +769,19 @@ class InstagramMessagingService:
                 idempotency_key=idempotency_key,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=request.creator_url,
                 meta_recipient_id=target_user_id,
+                meta_recipient_id_available=False,
                 message=request.message,
                 message_type=request.message_type or "test",
                 mode="real",
+                delivery_method="meta_api",
                 status="not_configured",
                 provider="meta",
                 error=err_msg,
                 created_at=now_str,
+                prepared_at=now_str,
+                updated_at=now_str,
             )
             _save_message_record(record)
             response = InstagramSendResponse(
@@ -686,14 +804,19 @@ class InstagramMessagingService:
                 idempotency_key=idempotency_key,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=request.creator_url,
                 meta_recipient_id=None,
+                meta_recipient_id_available=False,
                 message=request.message,
                 message_type=request.message_type or "test",
                 mode="real",
+                delivery_method="manual_instagram",
                 status="not_messageable",
                 provider="meta",
                 error=err_msg,
                 created_at=now_str,
+                prepared_at=now_str,
+                updated_at=now_str,
             )
             _save_message_record(record)
             return InstagramSendResponse(
@@ -729,14 +852,19 @@ class InstagramMessagingService:
                 idempotency_key=idempotency_key,
                 creator_id=request.creator_id,
                 instagram_username=clean_username,
+                instagram_url=request.creator_url,
                 meta_recipient_id=None,
+                meta_recipient_id_available=False,
                 message=request.message,
                 message_type=request.message_type or "test",
                 mode="real",
+                delivery_method="manual_instagram",
                 status="not_messageable",
                 provider="meta",
                 error=err_msg,
                 created_at=now_str,
+                prepared_at=now_str,
+                updated_at=now_str,
             )
             _save_message_record(record)
             response = InstagramSendResponse(
@@ -786,16 +914,21 @@ class InstagramMessagingService:
                         idempotency_key=request.idempotency_key,
                         creator_id=request.creator_id,
                         instagram_username=clean_username,
+                        instagram_url=request.creator_url,
                         meta_recipient_id=meta_rec_id,
+                        meta_recipient_id_available=True,
                         message=request.message,
                         message_type=request.message_type,
                         mode="real",
+                        delivery_method="meta_api",
                         status="sent",
                         provider="meta",
                         meta_message_id=meta_msg_id,
                         http_status=status_code,
                         created_at=now_str,
+                        prepared_at=now_str,
                         sent_at=sent_timestamp,
+                        updated_at=sent_timestamp,
                     )
                     _save_message_record(record)
 
@@ -825,10 +958,13 @@ class InstagramMessagingService:
                         idempotency_key=request.idempotency_key,
                         creator_id=request.creator_id,
                         instagram_username=clean_username,
+                        instagram_url=request.creator_url,
                         meta_recipient_id=target_user_id,
+                        meta_recipient_id_available=True,
                         message=request.message,
                         message_type=request.message_type,
                         mode="real",
+                        delivery_method="meta_api",
                         status="rejected",
                         provider="meta",
                         http_status=status_code,
@@ -839,6 +975,8 @@ class InstagramMessagingService:
                         fbtrace_id=diagnostics.fbtrace_id,
                         error=user_error,
                         created_at=now_str,
+                        prepared_at=now_str,
+                        updated_at=now_str,
                     )
                     _save_message_record(record)
 
@@ -847,10 +985,12 @@ class InstagramMessagingService:
                         status="rejected",
                         mode="real",
                         recipient_id=target_user_id,
+                        error_code=f"META_{diagnostics.code or status_code}",
                         error=user_error,
-                        details=f"HTTP {status_code} | code: {diagnostics.code} | trace: {diagnostics.fbtrace_id or 'none'}",
-                        provider="meta",
+                        message=user_error,
+                        details=diagnostics.message or f"HTTP {status_code} | code: {diagnostics.code} | trace: {diagnostics.fbtrace_id or 'none'}",
                         meta_diagnostics=diagnostics,
+                        provider="meta",
                     )
                     if request.idempotency_key:
                         self._idempotency_cache[request.idempotency_key] = (time.time(), response)

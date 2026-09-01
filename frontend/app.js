@@ -122,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultTimestamp = document.getElementById("result-timestamp");
   const resultProviderLbl = document.getElementById("result-provider-lbl");
   const retrySendBtn = document.getElementById("retry-send-btn");
+  const openIgContinueBtn = document.getElementById("open-ig-continue-btn");
 
   // Elements - Quick Instagram Send Modal & Card Button
   const quickSendModal = document.getElementById("quick-send-modal");
@@ -267,69 +268,76 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   // 2. Input Form & Quick Samples
   // ==========================================
-  creatorUrlInput.addEventListener("input", () => {
-    clearInputBtn.style.display = creatorUrlInput.value.trim() ? "block" : "none";
-  });
-
-  clearInputBtn.addEventListener("click", () => {
-    creatorUrlInput.value = "";
-    clearInputBtn.style.display = "none";
-    creatorUrlInput.focus();
-  });
-
-  sampleChips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      const url = chip.getAttribute("data-url");
-      if (url) {
-        creatorUrlInput.value = url;
-        clearInputBtn.style.display = "block";
-        discoveryForm.dispatchEvent(new Event("submit"));
-      }
+  if (creatorUrlInput && clearInputBtn) {
+    creatorUrlInput.addEventListener("input", () => {
+      clearInputBtn.style.display = creatorUrlInput.value.trim() ? "block" : "none";
     });
-  });
+
+    clearInputBtn.addEventListener("click", () => {
+      creatorUrlInput.value = "";
+      clearInputBtn.style.display = "none";
+      creatorUrlInput.focus();
+    });
+  }
+
+  if (sampleChips) {
+    sampleChips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        const url = chip.getAttribute("data-url");
+        if (url && creatorUrlInput) {
+          creatorUrlInput.value = url;
+          if (clearInputBtn) clearInputBtn.style.display = "block";
+          if (discoveryForm) discoveryForm.dispatchEvent(new Event("submit"));
+        }
+      });
+    });
+  }
 
   // ==========================================
   // 3. Extraction Pipeline Trigger
   // ==========================================
-  discoveryForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const inputUrl = creatorUrlInput.value.trim();
-    if (!inputUrl) return;
+  if (discoveryForm) {
+    discoveryForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const inputUrl = creatorUrlInput ? creatorUrlInput.value.trim() : "";
+      if (!inputUrl) return;
 
-    hideError();
-    startProgressAnimation();
-    setSearchingState(true);
-    creatorWorkspace.style.display = "none";
-    evidenceTrailSection.style.display = "none";
-    sendResultCard.style.display = "none";
-    activeRecipientIgsid = null;
-    if (customIgsidInput) customIgsidInput.value = "";
+      hideError();
+      startProgressAnimation();
+      setSearchingState(true);
+      if (creatorWorkspace) creatorWorkspace.style.display = "none";
+      if (evidenceTrailSection) evidenceTrailSection.style.display = "none";
+      if (sendResultCard) sendResultCard.style.display = "none";
+      activeRecipientIgsid = null;
+      if (customIgsidInput) customIgsidInput.value = "";
 
-    try {
-      const response = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: inputUrl })
-      });
+      try {
+        const response = await fetch("/api/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: inputUrl })
+        });
 
-      const result = await response.json();
-      finishProgressAnimation();
-      setSearchingState(false);
+        const result = await response.json();
+        finishProgressAnimation();
+        setSearchingState(false);
 
-      if (result.success && result.data) {
-        currentExtraction = result.data;
-        renderCreatorWorkspace(result.data);
-      } else {
-        showError("Extraction Failed", result.error || "Could not retrieve creator metadata from the provided link.");
+        if (result.success && result.data) {
+          currentExtraction = result.data;
+          renderCreatorWorkspace(result.data);
+        } else {
+          showError("Extraction Failed", result.error || "Could not retrieve creator metadata from the provided link.");
+        }
+      } catch (err) {
+        finishProgressAnimation();
+        setSearchingState(false);
+        showError("Connection Error", `Failed to contact intelligence server: ${err.message}`);
       }
-    } catch (err) {
-      finishProgressAnimation();
-      setSearchingState(false);
-      showError("Connection Error", `Failed to contact intelligence server: ${err.message}`);
-    }
-  });
+    });
+  }
 
   function setSearchingState(isSearching) {
+    if (!findCreatorBtn) return;
     findCreatorBtn.disabled = isSearching;
     const label = findCreatorBtn.querySelector(".btn-label");
     const loading = findCreatorBtn.querySelector(".btn-loading");
@@ -340,8 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Animated Progress Pipeline
   let progressInterval = null;
   function startProgressAnimation() {
-    pipelineProgress.style.display = "block";
-    progressBarFill.style.width = "5%";
+    if (pipelineProgress) pipelineProgress.style.display = "block";
+    if (progressBarFill) progressBarFill.style.width = "5%";
     
     const stages = [
       { text: "Resolving YouTube URL & channel handle...", pct: 20 },
@@ -352,40 +360,44 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
 
     let stageIdx = 0;
-    pipelineStatusText.textContent = stages[0].text;
-    progressBarFill.style.width = stages[0].pct + "%";
+    if (pipelineStatusText) pipelineStatusText.textContent = stages[0].text;
+    if (progressBarFill) progressBarFill.style.width = stages[0].pct + "%";
 
     progressInterval = setInterval(() => {
       stageIdx++;
       if (stageIdx < stages.length) {
-        pipelineStatusText.textContent = stages[stageIdx].text;
-        progressBarFill.style.width = stages[stageIdx].pct + "%";
+        if (pipelineStatusText) pipelineStatusText.textContent = stages[stageIdx].text;
+        if (progressBarFill) progressBarFill.style.width = stages[stageIdx].pct + "%";
       }
     }, 1200);
   }
 
   function finishProgressAnimation() {
     if (progressInterval) clearInterval(progressInterval);
-    progressBarFill.style.width = "100%";
-    pipelineStatusText.textContent = "Extraction complete!";
+    if (progressBarFill) progressBarFill.style.width = "100%";
+    if (pipelineStatusText) pipelineStatusText.textContent = "Extraction complete!";
     setTimeout(() => {
-      pipelineProgress.style.display = "none";
-      progressBarFill.style.width = "0%";
+      if (pipelineProgress) pipelineProgress.style.display = "none";
+      if (progressBarFill) progressBarFill.style.width = "0%";
     }, 500);
   }
 
   function showError(title, msg) {
-    errorTitle.textContent = title;
-    errorMessage.textContent = msg;
-    errorBanner.style.display = "flex";
-    errorBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (errorTitle) errorTitle.textContent = title;
+    if (errorMessage) errorMessage.textContent = msg;
+    if (errorBanner) {
+      errorBanner.style.display = "flex";
+      errorBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   }
 
   function hideError() {
-    errorBanner.style.display = "none";
+    if (errorBanner) errorBanner.style.display = "none";
   }
 
-  dismissErrorBtn.addEventListener("click", hideError);
+  if (dismissErrorBtn) {
+    dismissErrorBtn.addEventListener("click", hideError);
+  }
 
   // ==========================================
   // 4. Render Creator Workspace
@@ -397,33 +409,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const evidence = data.evidence || [];
 
     // 1. Profile Card
-    creatorName.textContent = yt.channel_title || yt.title || "Creator Discovered";
-    creatorHandle.textContent = yt.custom_url ? `@${yt.custom_url.replace(/^@/, '')}` : (yt.channel_id || "");
+    if (creatorName) creatorName.textContent = yt.channel_title || yt.title || "Creator Discovered";
+    if (creatorHandle) creatorHandle.textContent = yt.custom_url ? `@${yt.custom_url.replace(/^@/, '')}` : (yt.channel_id || "");
     
-    if (yt.url) {
-      creatorProfileLink.href = yt.url;
-      creatorProfileLink.style.display = "inline-flex";
-    } else {
-      creatorProfileLink.style.display = "none";
+    if (creatorProfileLink) {
+      if (yt.url) {
+        creatorProfileLink.href = yt.url;
+        creatorProfileLink.style.display = "inline-flex";
+      } else {
+        creatorProfileLink.style.display = "none";
+      }
     }
 
-    creatorSubscribersVal.textContent = yt.subscriber_count ? formatNumber(yt.subscriber_count) : "Hidden";
-    creatorViewsVal.textContent = yt.view_count ? formatNumber(yt.view_count) : "--";
+    if (creatorSubscribersVal) creatorSubscribersVal.textContent = yt.subscriber_count ? formatNumber(yt.subscriber_count) : "Hidden";
+    if (creatorViewsVal) creatorViewsVal.textContent = yt.view_count ? formatNumber(yt.view_count) : "--";
 
-    if (yt.video_title) {
-      creatorRecentTitle.textContent = yt.video_title;
-      metricRecentContent.style.display = "flex";
-    } else {
-      metricRecentContent.style.display = "none";
+    if (creatorRecentTitle && metricRecentContent) {
+      if (yt.video_title) {
+        creatorRecentTitle.textContent = yt.video_title;
+        metricRecentContent.style.display = "flex";
+      } else {
+        metricRecentContent.style.display = "none";
+      }
     }
 
-    creatorBioText.textContent = yt.description ? yt.description.slice(0, 240) + (yt.description.length > 240 ? "..." : "") : "No public bio or description available for this account.";
+    if (creatorBioText) {
+      creatorBioText.textContent = yt.description ? yt.description.slice(0, 240) + (yt.description.length > 240 ? "..." : "") : "No public bio or description available for this account.";
+    }
 
-    if (yt.thumbnail_url) {
+    if (yt.thumbnail_url && creatorAvatarImg && creatorAvatarFallback) {
       creatorAvatarImg.src = yt.thumbnail_url;
       creatorAvatarImg.style.display = "block";
       creatorAvatarFallback.style.display = "none";
-    } else {
+    } else if (creatorAvatarImg && creatorAvatarFallback) {
       creatorAvatarImg.style.display = "none";
       creatorAvatarFallback.style.display = "flex";
     }
@@ -472,8 +490,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    creatorWorkspace.style.display = "flex";
-    creatorWorkspace.scrollIntoView({ behavior: "smooth" });
+    if (creatorWorkspace) {
+      creatorWorkspace.style.display = "flex";
+      creatorWorkspace.scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   function formatNumber(num) {
@@ -490,35 +510,43 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderEmailSection(emails) {
     if (emails && emails.length > 0) {
       const primaryEmail = emails[0];
-      discoveredEmailAddress.textContent = primaryEmail.email;
-      emailEvidenceText.textContent = primaryEmail.evidence
-        ? `Source: ${primaryEmail.source} ("${primaryEmail.evidence.slice(0, 50)}...")`
-        : `Source: ${primaryEmail.source}`;
+      if (discoveredEmailAddress) discoveredEmailAddress.textContent = primaryEmail.email;
+      if (emailEvidenceText) {
+        emailEvidenceText.textContent = primaryEmail.evidence
+          ? `Source: ${primaryEmail.source} ("${primaryEmail.evidence.slice(0, 50)}...")`
+          : `Source: ${primaryEmail.source}`;
+      }
 
-      emailStatusPill.className = "pill-badge pill-success";
-      emailStatusPill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Discovered (${emails.length})`;
+      if (emailStatusPill) {
+        emailStatusPill.className = "pill-badge pill-success";
+        emailStatusPill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Discovered (${emails.length})`;
+      }
 
-      emailFoundView.style.display = "block";
-      emailNotFoundView.style.display = "none";
+      if (emailFoundView) emailFoundView.style.display = "block";
+      if (emailNotFoundView) emailNotFoundView.style.display = "none";
     } else {
-      emailStatusPill.className = "pill-badge pill-neutral";
-      emailStatusPill.textContent = "Not Found";
+      if (emailStatusPill) {
+        emailStatusPill.className = "pill-badge pill-neutral";
+        emailStatusPill.textContent = "Not Found";
+      }
 
-      emailFoundView.style.display = "none";
-      emailNotFoundView.style.display = "block";
+      if (emailFoundView) emailFoundView.style.display = "none";
+      if (emailNotFoundView) emailNotFoundView.style.display = "block";
     }
   }
 
-  copyEmailBtn.addEventListener("click", () => {
-    const text = discoveredEmailAddress.textContent;
-    if (text) {
-      navigator.clipboard.writeText(text);
-      copyEmailBtn.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
-      setTimeout(() => {
-        copyEmailBtn.innerHTML = `<i class="fa-regular fa-copy"></i> Copy`;
-      }, 2000);
-    }
-  });
+  if (copyEmailBtn) {
+    copyEmailBtn.addEventListener("click", () => {
+      const text = discoveredEmailAddress ? discoveredEmailAddress.textContent : "";
+      if (text) {
+        navigator.clipboard.writeText(text);
+        copyEmailBtn.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
+        setTimeout(() => {
+          copyEmailBtn.innerHTML = `<i class="fa-regular fa-copy"></i> Copy`;
+        }, 2000);
+      }
+    });
+  }
 
   // ==========================================
   // 6. Instagram Section Rendering (Separation of Discovery vs Capability)
@@ -538,28 +566,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (handle) {
       currentDiscoveredUsername = handle;
-      discoveredIgUsername.textContent = handle;
-      openIgLink.href = igAccount.url || `https://instagram.com/${handle}`;
-      igEvidenceText.textContent = `Discovered via ${igAccount.source || 'YouTube metadata'} (${igAccount.confidence || 'High'} Confidence)`;
+      if (discoveredIgUsername) discoveredIgUsername.textContent = handle;
+      if (openIgLink) openIgLink.href = igAccount.url || `https://instagram.com/${handle}`;
+      if (igEvidenceText) {
+        igEvidenceText.textContent = `Discovered via ${igAccount.source || 'YouTube metadata'} (${igAccount.confidence || 'High'} Confidence)`;
+      }
 
-      igDiscoveryPill.className = "pill-badge pill-success";
-      igDiscoveryPill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Discovered`;
+      if (igDiscoveryPill) {
+        igDiscoveryPill.className = "pill-badge pill-success";
+        igDiscoveryPill.innerHTML = `<i class="fa-solid fa-circle-check"></i> Discovered`;
+      }
 
-      igFoundView.style.display = "block";
-      igNotFoundView.style.display = "none";
+      if (igFoundView) igFoundView.style.display = "block";
+      if (igNotFoundView) igNotFoundView.style.display = "none";
 
-      consoleDiscoveryVal.textContent = `@${handle}`;
-      consoleDiscoveryVal.className = "console-meta-value highlight-ig";
+      if (consoleDiscoveryVal) {
+        consoleDiscoveryVal.textContent = `@${handle}`;
+        consoleDiscoveryVal.className = "console-meta-value highlight-ig";
+      }
     } else {
       currentDiscoveredUsername = null;
-      igDiscoveryPill.className = "pill-badge pill-neutral";
-      igDiscoveryPill.textContent = "Not Found";
+      if (igDiscoveryPill) {
+        igDiscoveryPill.className = "pill-badge pill-neutral";
+        igDiscoveryPill.textContent = "Not Found";
+      }
 
-      igFoundView.style.display = "none";
-      igNotFoundView.style.display = "block";
+      if (igFoundView) igFoundView.style.display = "none";
+      if (igNotFoundView) igNotFoundView.style.display = "block";
 
-      consoleDiscoveryVal.textContent = "Not Discovered";
-      consoleDiscoveryVal.className = "console-meta-value text-muted";
+      if (consoleDiscoveryVal) {
+        consoleDiscoveryVal.textContent = "Not Discovered";
+        consoleDiscoveryVal.className = "console-meta-value text-muted";
+      }
     }
   }
 
@@ -569,49 +607,55 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderOtherSocials(socials) {
     const otherKeys = Object.keys(socials).filter(k => k !== "instagram");
     if (otherKeys.length > 0) {
-      otherSocialsCount.textContent = otherKeys.length;
-      otherSocialsGrid.innerHTML = "";
+      if (otherSocialsCount) otherSocialsCount.textContent = otherKeys.length;
+      if (otherSocialsGrid) {
+        otherSocialsGrid.innerHTML = "";
 
-      otherKeys.forEach(platform => {
-        const item = socials[platform];
-        const iconClass = PLATFORM_ICONS[platform] || PLATFORM_ICONS.generic;
-        const displayName = platform.charAt(0).toUpperCase() + platform.slice(1);
-        const handleText = item.username ? `@${item.username}` : displayName;
+        otherKeys.forEach(platform => {
+          const item = socials[platform];
+          const iconClass = PLATFORM_ICONS[platform] || PLATFORM_ICONS.generic;
+          const displayName = platform.charAt(0).toUpperCase() + platform.slice(1);
+          const handleText = item.username ? `@${item.username}` : displayName;
 
-        const badge = document.createElement("a");
-        badge.className = "social-badge-link";
-        badge.href = item.url;
-        badge.target = "_blank";
-        badge.rel = "noopener noreferrer";
-        badge.innerHTML = `<i class="${iconClass}"></i> <span>${handleText}</span> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; opacity: 0.7;"></i>`;
-        otherSocialsGrid.appendChild(badge);
-      });
+          const badge = document.createElement("a");
+          badge.className = "social-badge-link";
+          badge.href = item.url;
+          badge.target = "_blank";
+          badge.rel = "noopener noreferrer";
+          badge.innerHTML = `<i class="${iconClass}"></i> <span>${handleText}</span> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; opacity: 0.7;"></i>`;
+          otherSocialsGrid.appendChild(badge);
+        });
+      }
 
-      otherSocialsCard.style.display = "block";
+      if (otherSocialsCard) otherSocialsCard.style.display = "block";
     } else {
-      otherSocialsCard.style.display = "none";
+      if (otherSocialsCard) otherSocialsCard.style.display = "none";
     }
   }
 
-  toggleOtherSocials.addEventListener("click", () => {
-    const isOpen = otherSocialsContent.style.display === "block";
-    otherSocialsContent.style.display = isOpen ? "none" : "block";
-    toggleOtherSocials.classList.toggle("open", !isOpen);
-  });
+  if (toggleOtherSocials && otherSocialsContent) {
+    toggleOtherSocials.addEventListener("click", () => {
+      const isOpen = otherSocialsContent.style.display === "block";
+      otherSocialsContent.style.display = isOpen ? "none" : "block";
+      toggleOtherSocials.classList.toggle("open", !isOpen);
+    });
+  }
 
   // ==========================================
   // 8. AI Outreach Generator
   // ==========================================
   async function generateAiOutreach(data) {
     const yt = data.youtube || {};
-    regenerateOutreachBtn.disabled = true;
-    const rotateIcon = regenerateOutreachBtn.querySelector("i");
-    if (rotateIcon) rotateIcon.classList.add("fa-spin");
+    if (regenerateOutreachBtn) {
+      regenerateOutreachBtn.disabled = true;
+      const rotateIcon = regenerateOutreachBtn.querySelector("i");
+      if (rotateIcon) rotateIcon.classList.add("fa-spin");
+    }
 
     try {
       const payload = {
-        creator_name: yt.channel_title || "Creator",
-        channel_name: yt.channel_title || "YouTube Channel",
+        creator_name: yt.channel_title || yt.title || "Creator",
+        channel_name: yt.channel_title || yt.title || "YouTube Channel",
         platform: "YouTube",
         category: "Creator",
         recent_video_title: yt.video_title || null,
@@ -627,58 +671,69 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (res.ok) {
         const outreach = await res.json();
-        outreachTextarea.value = outreach.message || "";
+        if (outreachTextarea) outreachTextarea.value = outreach.message || "";
         updateCharCount();
 
-        groundingEvidenceList.innerHTML = "";
-        (outreach.grounded_evidence || []).forEach(item => {
-          const pill = document.createElement("span");
-          pill.className = "grounding-pill";
-          pill.innerHTML = `<i class="fa-solid fa-check"></i> ${escapeHtml(item)}`;
-          groundingEvidenceList.appendChild(pill);
-        });
+        if (groundingEvidenceList) {
+          groundingEvidenceList.innerHTML = "";
+          (outreach.grounded_evidence || []).forEach(item => {
+            const pill = document.createElement("span");
+            pill.className = "grounding-pill";
+            pill.innerHTML = `<i class="fa-solid fa-check"></i> ${escapeHtml(item)}`;
+            groundingEvidenceList.appendChild(pill);
+          });
+        }
 
-        if (activeMessageType === "outreach") {
+        if (activeMessageType === "outreach" && activeDispatchTextarea && outreachTextarea) {
           activeDispatchTextarea.value = outreachTextarea.value;
         }
       }
     } catch (e) {
       console.warn("Outreach generation failed:", e);
     } finally {
-      regenerateOutreachBtn.disabled = false;
-      if (rotateIcon) rotateIcon.classList.remove("fa-spin");
+      if (regenerateOutreachBtn) {
+        regenerateOutreachBtn.disabled = false;
+        const rotateIcon = regenerateOutreachBtn.querySelector("i");
+        if (rotateIcon) rotateIcon.classList.remove("fa-spin");
+      }
     }
   }
 
-  regenerateOutreachBtn.addEventListener("click", () => {
-    if (currentExtraction) generateAiOutreach(currentExtraction);
-  });
+  if (regenerateOutreachBtn) {
+    regenerateOutreachBtn.addEventListener("click", () => {
+      if (currentExtraction) generateAiOutreach(currentExtraction);
+    });
+  }
 
-  editOutreachBtn.addEventListener("click", () => {
-    isEditingOutreach = !isEditingOutreach;
-    if (isEditingOutreach) {
-      outreachTextarea.focus();
-      editBtnText.textContent = "Done";
-      editOutreachBtn.classList.add("active-edit");
-    } else {
-      editBtnText.textContent = "Edit";
-      editOutreachBtn.classList.remove("active-edit");
-    }
-  });
+  if (editOutreachBtn) {
+    editOutreachBtn.addEventListener("click", () => {
+      isEditingOutreach = !isEditingOutreach;
+      if (isEditingOutreach) {
+        if (outreachTextarea) outreachTextarea.focus();
+        if (editBtnText) editBtnText.textContent = "Done";
+        editOutreachBtn.classList.add("active-edit");
+      } else {
+        if (editBtnText) editBtnText.textContent = "Edit";
+        editOutreachBtn.classList.remove("active-edit");
+      }
+    });
+  }
 
-  copyOutreachBtn.addEventListener("click", () => {
-    const text = outreachTextarea.value;
-    if (text) {
-      navigator.clipboard.writeText(text);
-      const span = copyOutreachBtn.querySelector("span");
-      if (span) span.textContent = "Copied ✓";
-      setTimeout(() => { if (span) span.textContent = "Copy"; }, 2000);
-    }
-  });
+  if (copyOutreachBtn) {
+    copyOutreachBtn.addEventListener("click", () => {
+      const text = outreachTextarea ? outreachTextarea.value : "";
+      if (text) {
+        navigator.clipboard.writeText(text);
+        const span = copyOutreachBtn.querySelector("span");
+        if (span) span.textContent = "Copied ✓";
+        setTimeout(() => { if (span) span.textContent = "Copy"; }, 2000);
+      }
+    });
+  }
 
   if (useEmailOutreachBtn) {
     useEmailOutreachBtn.addEventListener("click", () => {
-      const text = outreachTextarea.value;
+      const text = outreachTextarea ? outreachTextarea.value : "";
       if (text) {
         navigator.clipboard.writeText(text);
         useEmailOutreachBtn.innerHTML = `<i class="fa-solid fa-check"></i> Outreach Copied to Clipboard!`;
@@ -689,11 +744,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  outreachTextarea.addEventListener("input", updateCharCount);
+  if (outreachTextarea) {
+    outreachTextarea.addEventListener("input", updateCharCount);
+  }
 
   function updateCharCount() {
-    charCountVal.textContent = outreachTextarea.value.length;
-    if (activeMessageType === "outreach") {
+    if (charCountVal && outreachTextarea) {
+      charCountVal.textContent = outreachTextarea.value.length;
+    }
+    if (activeMessageType === "outreach" && activeDispatchTextarea && outreachTextarea) {
       activeDispatchTextarea.value = outreachTextarea.value;
     }
   }
@@ -716,13 +775,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function checkInstagramEligibility(username, user_id) {
-    messagingEligibilityPill.className = "eligibility-status-pill pill-neutral";
-    messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Checking Status...`;
+    if (messagingEligibilityPill) {
+      messagingEligibilityPill.className = "eligibility-status-pill pill-neutral";
+      messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Checking Status...`;
+    }
 
     if (quickModalStatusBadge) {
       quickModalStatusBadge.className = "pill-badge pill-neutral";
       quickModalStatusBadge.textContent = "Checking...";
-      quickModalStatusExplanation.textContent = "Checking creator outreach readiness...";
+      if (quickModalStatusExplanation) {
+        quickModalStatusExplanation.textContent = "Checking creator outreach readiness...";
+      }
     }
 
     try {
@@ -733,7 +796,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mode: activeGlobalMode
       });
 
-      const res = await fetch(`/api/instagram/recipient-status?${queryParams.toString()}`);
+      const res = await fetch(`/api/instagram/outreach/status?${queryParams.toString()}`);
       if (res.ok) {
         const data = await res.json();
         currentEligibility = data;
@@ -743,7 +806,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const fallback = {
           mode: activeGlobalMode,
           discovery: { status: "discovered", username: username },
-          messaging: { eligible: false, status: "interaction_required", reason: "Outreach ready" }
+          delivery: {
+            method: "manual_instagram",
+            messageable: false,
+            status: "manual_instagram_required",
+            label: "Instagram — manual send",
+            details: "Instagram outreach ready. Automated Meta delivery unavailable; user action required."
+          },
+          messaging: { eligible: false, status: "manual_send_required", reason: "Outreach ready" }
         };
         currentEligibility = fallback;
         renderEligibilityUI(fallback);
@@ -753,7 +823,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const fallback = {
         mode: activeGlobalMode,
         discovery: { status: "discovered", username: username },
-        messaging: { eligible: false, status: "interaction_required", reason: "Outreach ready" }
+        delivery: {
+          method: "manual_instagram",
+          messageable: false,
+          status: "manual_instagram_required",
+          label: "Instagram — manual send",
+          details: "Instagram outreach ready. Automated Meta delivery unavailable; user action required."
+        },
+        messaging: { eligible: false, status: "manual_send_required", reason: "Outreach ready" }
       };
       currentEligibility = fallback;
       renderEligibilityUI(fallback);
@@ -763,82 +840,187 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderEligibilityUI(data) {
     const discovery = data.discovery || { username: data.instagram_username ? data.instagram_username.replace(/^@/, '') : currentDiscoveredUsername };
-    const messaging = data.messaging || {};
-    const canSend = Boolean(messaging.eligible || data.can_send);
+    const delivery = data.delivery || {
+      method: (data.messaging && data.messaging.eligible) ? "meta_api" : "manual_instagram",
+      messageable: Boolean(data.messaging && data.messaging.eligible),
+      label: (data.messaging && data.messaging.eligible) ? "Instagram — Meta API" : "Instagram — manual send",
+      details: (data.messaging && data.messaging.reason) || "Outreach ready."
+    };
+
+    const isSim = activeGlobalMode === "simulation";
+    const isMeta = !isSim && delivery.method === "meta_api";
+    const hasHandle = Boolean(discovery.username || currentDiscoveredUsername);
 
     // 1. Console Meta Fields
-    consoleDiscoveryVal.textContent = discovery.username ? `@${discovery.username}` : (currentDiscoveredUsername ? `@${currentDiscoveredUsername}` : "Not Discovered");
-    consoleDiscoveryVal.className = (discovery.username || currentDiscoveredUsername) ? "console-meta-value highlight-ig" : "console-meta-value text-muted";
+    if (consoleDiscoveryVal) {
+      consoleDiscoveryVal.textContent = hasHandle ? `@${(discovery.username || currentDiscoveredUsername).replace(/^@/, '')}` : "Not Discovered";
+      consoleDiscoveryVal.className = hasHandle ? "console-meta-value highlight-ig" : "console-meta-value text-muted";
+    }
 
-    // 2. Messaging Mode Handling
-    if (messaging.eligible && canSend && activeGlobalMode === "real") {
-      messagingEligibilityPill.className = "eligibility-status-pill eligible";
-      messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Meta Messaging Available`;
+    // 2. Messaging & Delivery Mode Handling
+    if (isSim) {
+      if (messagingEligibilityPill) {
+        messagingEligibilityPill.className = "eligibility-status-pill eligible";
+        messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Simulation Mode Active`;
+      }
+      if (eligibilityBanner) {
+        eligibilityBanner.className = "eligibility-banner eligible-mode";
+        if (eligibilityBannerIcon) eligibilityBannerIcon.className = "fa-solid fa-flask banner-status-icon";
+        if (eligibilityBannerTitle) eligibilityBannerTitle.textContent = "⚡ Simulation Mode Active";
+        if (eligibilityBannerDesc) eligibilityBannerDesc.textContent = "Test full outreach pipeline locally without making external Meta API calls.";
+      }
+      if (consoleRecipientVal) {
+        consoleRecipientVal.textContent = "Ready for Outreach";
+        consoleRecipientVal.className = "console-meta-value highlight-ig";
+      }
+      if (consoleCapabilityVal) {
+        consoleCapabilityVal.textContent = "Local Simulation";
+        consoleCapabilityVal.className = "console-meta-value highlight-ig";
+      }
 
-      eligibilityBanner.className = "eligibility-banner eligible-mode";
-      eligibilityBannerIcon.className = "fa-solid fa-circle-check banner-status-icon";
-      eligibilityBannerTitle.textContent = "✓ Meta Messaging Available (Connected Conversation Active)";
-      eligibilityBannerDesc.textContent = messaging.reason || "Official Meta Graph API messaging is ready for direct dispatch.";
+      if (sendInstagramBtn) {
+        sendInstagramBtn.style.display = "inline-flex";
+        sendInstagramBtn.disabled = false;
+        sendInstagramBtn.title = "";
+      }
+      if (sendBtnMainLabel) sendBtnMainLabel.innerHTML = `<i class="fa-solid fa-flask"></i> Simulate Send`;
+      if (openIgContinueBtn) openIgContinueBtn.style.display = "none";
+      if (consoleCopyMsgBtn) consoleCopyMsgBtn.style.display = "inline-flex";
 
-      consoleRecipientVal.textContent = "Meta Conversation Active";
-      consoleRecipientVal.className = "console-meta-value highlight-ig";
-      consoleCapabilityVal.textContent = "Official API Send";
-      consoleCapabilityVal.className = "console-meta-value highlight-ig";
+      if (sendStatusDisplay) {
+        sendStatusDisplay.innerHTML = `<span style="color: #c084fc;"><i class="fa-solid fa-flask"></i> Ready for local simulation</span>`;
+      }
+      if (altOutreachBanner) altOutreachBanner.style.display = "none";
+      if (igCardCapabilityBadge) {
+        igCardCapabilityBadge.className = "pill-badge pill-neutral";
+        igCardCapabilityBadge.textContent = "Simulation Mode";
+      }
+      if (igCardCapabilityHint) igCardCapabilityHint.textContent = "Simulate message pipeline without external Meta API calls.";
+      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Instagram Outreach";
 
-      sendInstagramBtn.disabled = false;
-      sendBtnMainLabel.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
-      sendStatusDisplay.innerHTML = `<span style="color: #34d399;"><i class="fa-solid fa-check"></i> Connected conversation ready for Meta send</span>`;
-      altOutreachBanner.style.display = "none";
+    } else if (isMeta) {
+      if (messagingEligibilityPill) {
+        messagingEligibilityPill.className = "eligibility-status-pill eligible";
+        messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> ✓ Meta Messaging Available`;
+      }
 
-      igCardCapabilityBadge.className = "pill-badge pill-success";
-      igCardCapabilityBadge.textContent = "Meta messaging available";
-      igCardCapabilityHint.textContent = "Legitimate Meta messaging identity is active for official API dispatch.";
-      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Send Message";
+      if (eligibilityBanner) {
+        eligibilityBanner.className = "eligibility-banner eligible-mode";
+        if (eligibilityBannerIcon) eligibilityBannerIcon.className = "fa-solid fa-circle-check banner-status-icon";
+        if (eligibilityBannerTitle) eligibilityBannerTitle.textContent = "✓ Meta Messaging Available (Connected Conversation Active)";
+        if (eligibilityBannerDesc) eligibilityBannerDesc.textContent = delivery.details || "Official Meta Graph API messaging is ready for automated direct dispatch.";
+      }
 
-    } else if (currentDiscoveredUsername || discovery.username) {
-      const igHandle = currentDiscoveredUsername || discovery.username;
-      messagingEligibilityPill.className = "eligibility-status-pill pill-warning";
-      messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Meta Interaction Required`;
+      if (consoleRecipientVal) {
+        consoleRecipientVal.textContent = "Ready for Outreach (Connected)";
+        consoleRecipientVal.className = "console-meta-value highlight-ig";
+      }
+      if (consoleCapabilityVal) {
+        consoleCapabilityVal.textContent = "Instagram — Meta API";
+        consoleCapabilityVal.className = "console-meta-value highlight-ig";
+      }
 
-      eligibilityBanner.className = "eligibility-banner warning-mode";
-      eligibilityBannerIcon.className = "fa-brands fa-instagram banner-status-icon";
-      eligibilityBannerTitle.textContent = `Discovered Instagram Account (@${igHandle})`;
-      eligibilityBannerDesc.textContent = "Meta Graph API requires prior recipient interaction (IGSID) before direct delivery. Click Send to attempt automated send.";
+      if (sendInstagramBtn) {
+        sendInstagramBtn.style.display = "inline-flex";
+        sendInstagramBtn.disabled = false;
+        sendInstagramBtn.title = "";
+      }
+      if (sendBtnMainLabel) sendBtnMainLabel.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
+      if (openIgContinueBtn) openIgContinueBtn.style.display = "none";
+      if (consoleCopyMsgBtn) consoleCopyMsgBtn.style.display = "inline-flex";
 
-      consoleRecipientVal.textContent = `@${igHandle}`;
-      consoleRecipientVal.className = "console-meta-value highlight-ig";
-      consoleCapabilityVal.textContent = "Meta API Send (IGSID Required)";
-      consoleCapabilityVal.className = "console-meta-value highlight-ig";
+      if (sendStatusDisplay) {
+        sendStatusDisplay.innerHTML = `<span style="color: #34d399;"><i class="fa-solid fa-check"></i> Connected conversation ready for Meta send</span>`;
+      }
+      if (altOutreachBanner) altOutreachBanner.style.display = "none";
 
-      sendInstagramBtn.disabled = false;
-      sendBtnMainLabel.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
-      sendStatusDisplay.innerHTML = `<span style="color: #94a3b8;"><i class="fa-solid fa-paper-plane"></i> Ready to send</span>`;
-      altOutreachBanner.style.display = "none";
+      if (igCardCapabilityBadge) {
+        igCardCapabilityBadge.className = "pill-badge pill-success";
+        igCardCapabilityBadge.textContent = "Instagram — Meta API";
+      }
+      if (igCardCapabilityHint) igCardCapabilityHint.textContent = "Active Meta messaging session ready for direct automated delivery.";
+      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Instagram Outreach";
 
-      igCardCapabilityBadge.className = "pill-badge pill-neutral";
-      igCardCapabilityBadge.textContent = "Meta Send API";
-      igCardCapabilityHint.textContent = "Click Send to attempt automated message delivery via Meta API.";
-      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Send Message";
+    } else if (hasHandle) {
+      const igHandle = (discovery.username || currentDiscoveredUsername).replace(/^@/, '');
+      if (messagingEligibilityPill) {
+        messagingEligibilityPill.className = "eligibility-status-pill pill-neutral";
+        messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Instagram Outreach Ready`;
+      }
+
+      if (eligibilityBanner) {
+        eligibilityBanner.className = "eligibility-banner info-mode";
+        if (eligibilityBannerIcon) eligibilityBannerIcon.className = "fa-brands fa-instagram banner-status-icon";
+        if (eligibilityBannerTitle) eligibilityBannerTitle.textContent = `Instagram Outreach Ready (@${igHandle})`;
+        if (eligibilityBannerDesc) eligibilityBannerDesc.textContent = `Personalized outreach message is ready. Automated Meta delivery is unavailable for this creator; click "Open Instagram & Continue" to complete your message on Instagram.`;
+      }
+
+      if (consoleRecipientVal) {
+        consoleRecipientVal.textContent = "Ready for Outreach";
+        consoleRecipientVal.className = "console-meta-value highlight-ig";
+      }
+      if (consoleCapabilityVal) {
+        consoleCapabilityVal.textContent = "Instagram — manual send";
+        consoleCapabilityVal.className = "console-meta-value highlight-ig";
+      }
+
+      if (sendInstagramBtn) {
+        sendInstagramBtn.style.display = "none";
+      }
+      if (openIgContinueBtn) {
+        openIgContinueBtn.style.display = "inline-flex";
+        openIgContinueBtn.disabled = false;
+        openIgContinueBtn.title = "Open Instagram profile and prepare message for manual send";
+      }
+      if (consoleCopyMsgBtn) consoleCopyMsgBtn.style.display = "inline-flex";
+
+      if (sendStatusDisplay) {
+        sendStatusDisplay.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-paper-plane"></i> Personalized message ready for outreach</span>`;
+      }
+      if (altOutreachBanner) altOutreachBanner.style.display = "none";
+
+      if (igCardCapabilityBadge) {
+        igCardCapabilityBadge.className = "pill-badge pill-neutral";
+        igCardCapabilityBadge.textContent = "Instagram — manual send";
+      }
+      if (igCardCapabilityHint) igCardCapabilityHint.textContent = "Creator is ready for outreach. Message is prepared for manual send on Instagram.";
+      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Instagram Outreach";
 
     } else {
-      messagingEligibilityPill.className = "eligibility-status-pill pill-neutral";
-      messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Not Discovered`;
+      if (messagingEligibilityPill) {
+        messagingEligibilityPill.className = "eligibility-status-pill pill-neutral";
+        messagingEligibilityPill.innerHTML = `<span class="pill-dot"></span> Not Discovered`;
+      }
 
-      eligibilityBanner.className = "eligibility-banner info-mode";
-      eligibilityBannerIcon.className = "fa-solid fa-circle-info banner-status-icon";
-      eligibilityBannerTitle.textContent = "No Instagram Profile Discovered";
-      eligibilityBannerDesc.textContent = "An Instagram handle must be identified before outreach can be prepared.";
+      if (eligibilityBanner) {
+        eligibilityBanner.className = "eligibility-banner info-mode";
+        if (eligibilityBannerIcon) eligibilityBannerIcon.className = "fa-solid fa-circle-info banner-status-icon";
+        if (eligibilityBannerTitle) eligibilityBannerTitle.textContent = "No Instagram Profile Discovered";
+        if (eligibilityBannerDesc) eligibilityBannerDesc.textContent = "An Instagram handle must be identified before outreach can be prepared.";
+      }
 
-      consoleCapabilityVal.textContent = "None";
-      sendInstagramBtn.disabled = true;
-      sendBtnMainLabel.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
-      sendStatusDisplay.textContent = "No Instagram recipient found";
-      altOutreachBanner.style.display = "none";
+      if (consoleRecipientVal) {
+        consoleRecipientVal.textContent = "Not Discovered";
+        consoleRecipientVal.className = "console-meta-value text-muted";
+      }
+      if (consoleCapabilityVal) {
+        consoleCapabilityVal.textContent = "None";
+        consoleCapabilityVal.className = "console-meta-value text-muted";
+      }
 
-      igCardCapabilityBadge.className = "pill-badge pill-neutral";
-      igCardCapabilityBadge.textContent = "Not Discovered";
-      igCardCapabilityHint.textContent = "No Instagram profile discovered.";
-      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Send Message";
+      if (sendInstagramBtn) sendInstagramBtn.style.display = "none";
+      if (openIgContinueBtn) openIgContinueBtn.style.display = "none";
+      if (consoleCopyMsgBtn) consoleCopyMsgBtn.style.display = "none";
+
+      if (sendStatusDisplay) sendStatusDisplay.textContent = "No Instagram recipient found";
+      if (altOutreachBanner) altOutreachBanner.style.display = "none";
+
+      if (igCardCapabilityBadge) {
+        igCardCapabilityBadge.className = "pill-badge pill-neutral";
+        igCardCapabilityBadge.textContent = "Not Discovered";
+      }
+      if (igCardCapabilityHint) igCardCapabilityHint.textContent = "No Instagram profile discovered.";
+      if (quickSendBtnLabel) quickSendBtnLabel.textContent = "Instagram Outreach";
     }
   }
 
@@ -846,30 +1028,73 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!quickSendModal) return;
 
     const username = data.instagram_username ? data.instagram_username.replace(/^@/, '') : currentDiscoveredUsername;
-    const messaging = data.messaging || {};
-    const isMeta = Boolean(messaging.eligible && activeGlobalMode === "real");
+    const delivery = data.delivery || {
+      method: (data.messaging && data.messaging.eligible) ? "meta_api" : "manual_instagram",
+      messageable: Boolean(data.messaging && data.messaging.eligible),
+      label: (data.messaging && data.messaging.eligible) ? "Instagram — Meta API" : "Instagram — manual send",
+      details: (data.messaging && data.messaging.reason) || "Outreach ready."
+    };
+
+    const isSim = activeGlobalMode === "simulation";
+    const isMeta = !isSim && delivery.method === "meta_api";
 
     if (quickModalRecipientUsername) {
       quickModalRecipientUsername.textContent = username ? `@${username}` : "None";
     }
 
-    if (isMeta) {
-      quickModalEligibilityBox.className = "quick-eligibility-box eligible";
-      quickModalStatusBadge.className = "pill-badge pill-success";
-      quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Meta messaging available`;
-      quickModalStatusExplanation.textContent = messaging.reason || "Legitimate Meta messaging identity is active and ready for dispatch.";
-      quickModalSendBtn.style.display = "inline-flex";
-      quickModalSendBtn.disabled = false;
-      quickSendModalBtnText.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
+    if (isSim) {
+      if (quickModalEligibilityBox) quickModalEligibilityBox.className = "quick-eligibility-box eligible";
+      if (quickModalStatusBadge) {
+        quickModalStatusBadge.className = "pill-badge pill-neutral";
+        quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-flask"></i> Local Simulation`;
+      }
+      if (quickModalStatusExplanation) {
+        quickModalStatusExplanation.textContent = "Simulation mode active. Test pipeline dispatch locally without external Meta API calls.";
+      }
+      if (quickModalSendBtn) {
+        quickModalSendBtn.style.display = "inline-flex";
+        quickModalSendBtn.disabled = false;
+        quickModalSendBtn.title = "";
+      }
+      if (quickSendModalBtnText) quickSendModalBtnText.innerHTML = `<i class="fa-solid fa-flask"></i> Simulate Send`;
+      if (quickModalOpenIgBtn) quickModalOpenIgBtn.style.display = "none";
+      if (quickModalCopyMsgBtn) quickModalCopyMsgBtn.style.display = "inline-flex";
+
+    } else if (isMeta) {
+      if (quickModalEligibilityBox) quickModalEligibilityBox.className = "quick-eligibility-box eligible";
+      if (quickModalStatusBadge) {
+        quickModalStatusBadge.className = "pill-badge pill-success";
+        quickModalStatusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Instagram — Meta API`;
+      }
+      if (quickModalStatusExplanation) {
+        quickModalStatusExplanation.textContent = delivery.details || "Legitimate Meta messaging identity is active and ready for automated direct dispatch.";
+      }
+      if (quickModalSendBtn) {
+        quickModalSendBtn.style.display = "inline-flex";
+        quickModalSendBtn.disabled = false;
+        quickModalSendBtn.title = "";
+      }
+      if (quickSendModalBtnText) quickSendModalBtnText.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
+      if (quickModalOpenIgBtn) quickModalOpenIgBtn.style.display = "none";
+      if (quickModalCopyMsgBtn) quickModalCopyMsgBtn.style.display = "inline-flex";
 
     } else {
-      quickModalEligibilityBox.className = "quick-eligibility-box checking";
-      quickModalStatusBadge.className = "pill-badge pill-neutral";
-      quickModalStatusBadge.innerHTML = `<i class="fa-brands fa-instagram"></i> Meta Send API`;
-      quickModalStatusExplanation.innerHTML = `Click <strong>"Send"</strong> to attempt automated message delivery through Meta's official API.`;
-      quickModalSendBtn.style.display = "inline-flex";
-      quickModalSendBtn.disabled = false;
-      quickSendModalBtnText.innerHTML = `<i class="fa-brands fa-instagram"></i> Send`;
+      if (quickModalEligibilityBox) quickModalEligibilityBox.className = "quick-eligibility-box neutral";
+      if (quickModalStatusBadge) {
+        quickModalStatusBadge.className = "pill-badge pill-neutral";
+        quickModalStatusBadge.innerHTML = `<i class="fa-brands fa-instagram"></i> Instagram — manual send`;
+      }
+      if (quickModalStatusExplanation) {
+        quickModalStatusExplanation.innerHTML = `Personalized outreach message is ready. Click <strong>"Open Instagram & Continue"</strong> to copy the message and open the creator's profile.`;
+      }
+      if (quickModalSendBtn) {
+        quickModalSendBtn.style.display = "none";
+      }
+      if (quickModalOpenIgBtn) {
+        quickModalOpenIgBtn.style.display = "inline-flex";
+        quickModalOpenIgBtn.disabled = false;
+      }
+      if (quickModalCopyMsgBtn) quickModalCopyMsgBtn.style.display = "inline-flex";
     }
   }
 
@@ -883,7 +1108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (quickModalRecipientUsername) {
-      quickModalRecipientUsername.textContent = `@${currentDiscoveredUsername}`;
+      quickModalRecipientUsername.textContent = `@${currentDiscoveredUsername.replace(/^@/, '')}`;
     }
     
     // Pre-populate with generated AI outreach if available, else default test message
@@ -898,14 +1123,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     checkInstagramEligibility(currentDiscoveredUsername, activeRecipientIgsid);
 
-    quickSendModal.style.display = "flex";
-    setTimeout(() => {
-      quickModalTextarea.focus();
-    }, 100);
+    if (quickSendModal) {
+      quickSendModal.style.display = "flex";
+      setTimeout(() => {
+        if (quickModalTextarea) quickModalTextarea.focus();
+      }, 100);
+    }
   }
 
   function closeInstagramTestMessageDialog() {
-    quickSendModal.style.display = "none";
+    if (quickSendModal) quickSendModal.style.display = "none";
   }
 
   if (quickSendIgBtn) {
@@ -922,7 +1149,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (quickModalCopyMsgBtn) {
     quickModalCopyMsgBtn.addEventListener("click", () => {
-      const text = quickModalTextarea.value;
+      const text = (quickModalTextarea && quickModalTextarea.value) || "";
       if (text) {
         navigator.clipboard.writeText(text);
         quickModalCopyMsgBtn.innerHTML = `<i class="fa-solid fa-check"></i> Copied ✓`;
@@ -944,19 +1171,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Educational Meta Rules Modal Handlers
   if (openMetaRulesBtn) {
     openMetaRulesBtn.addEventListener("click", () => {
-      metaRulesModal.style.display = "flex";
+      if (metaRulesModal) metaRulesModal.style.display = "flex";
     });
   }
 
   if (closeMetaRulesBtn) {
     closeMetaRulesBtn.addEventListener("click", () => {
-      metaRulesModal.style.display = "none";
+      if (metaRulesModal) metaRulesModal.style.display = "none";
     });
   }
 
   if (dismissMetaRulesBtn) {
     dismissMetaRulesBtn.addEventListener("click", () => {
-      metaRulesModal.style.display = "none";
+      if (metaRulesModal) metaRulesModal.style.display = "none";
     });
   }
 
@@ -984,69 +1211,113 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Tabs: Test Message vs AI Outreach Message
-  tabTestMsg.addEventListener("click", () => {
-    activeMessageType = "test";
-    tabTestMsg.classList.add("active");
-    tabAiMsg.classList.remove("active");
-    activeMsgTypeLabel.textContent = "Fixed Test DM";
-    activeDispatchTextarea.value = DEFAULT_TEST_MESSAGE;
-  });
-
-  tabAiMsg.addEventListener("click", () => {
-    activeMessageType = "outreach";
-    tabAiMsg.classList.add("active");
-    tabTestMsg.classList.remove("active");
-    activeMsgTypeLabel.textContent = "Customized AI Outreach";
-    activeDispatchTextarea.value = outreachTextarea.value;
-  });
-
-  // Optional Recipient Drawer Toggle (if present)
-  if (toggleRecipientIdBtn && recipientIdDrawer) {
-    toggleRecipientIdBtn.addEventListener("click", () => {
-      const isHidden = recipientIdDrawer.style.display === "none";
-      recipientIdDrawer.style.display = isHidden ? "block" : "none";
+  if (tabTestMsg) {
+    tabTestMsg.addEventListener("click", () => {
+      activeMessageType = "test";
+      tabTestMsg.classList.add("active");
+      if (tabAiMsg) tabAiMsg.classList.remove("active");
+      if (activeMsgTypeLabel) activeMsgTypeLabel.textContent = "Fixed Test DM";
+      if (activeDispatchTextarea) activeDispatchTextarea.value = DEFAULT_TEST_MESSAGE;
     });
   }
 
-  if (applyIgsidBtn && customIgsidInput) {
-    applyIgsidBtn.addEventListener("click", () => {
-      const customId = customIgsidInput.value.trim();
-      if (customId) {
-        activeRecipientIgsid = customId;
-        applyIgsidBtn.textContent = "Applied ✓";
-        checkInstagramEligibility(currentDiscoveredUsername, activeRecipientIgsid);
-        setTimeout(() => { applyIgsidBtn.textContent = "Apply IGSID"; }, 2000);
-      } else {
-        activeRecipientIgsid = null;
-        checkInstagramEligibility(currentDiscoveredUsername, null);
+  if (tabAiMsg) {
+    tabAiMsg.addEventListener("click", () => {
+      activeMessageType = "outreach";
+      tabAiMsg.classList.add("active");
+      if (tabTestMsg) tabTestMsg.classList.remove("active");
+      if (activeMsgTypeLabel) activeMsgTypeLabel.textContent = "Customized AI Outreach";
+      if (activeDispatchTextarea) activeDispatchTextarea.value = (outreachTextarea ? outreachTextarea.value : "");
+    });
+  }
+
+  // ==========================================
+  // 10. Outreach Actions: Manual Handoff vs Official Meta API
+  // ==========================================
+
+  // A) Manual Instagram Handoff Workflow
+  async function handleManualInstagramHandoff(msgText, triggerSource = "console") {
+    const cleanMsg = (msgText || "").trim();
+    if (!cleanMsg) {
+      alert("Please enter a message before continuing.");
+      return;
+    }
+
+    if (!currentDiscoveredUsername) {
+      alert("No Instagram username is available for this creator.");
+      return;
+    }
+
+    const cleanUser = currentDiscoveredUsername.replace(/^@/, "").trim();
+    const profileUrl = `https://www.instagram.com/${cleanUser}/`;
+
+    // 1. Copy message to clipboard
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(cleanMsg);
       }
-    });
+    } catch (clipErr) {
+      console.warn("Clipboard write failed:", clipErr);
+    }
+
+    // 2. Open Instagram Profile in new tab
+    window.open(profileUrl, "_blank", "noopener,noreferrer");
+
+    // 3. Record auditable entry via backend without claiming sent
+    try {
+      await fetch("/api/instagram/outreach/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creator_id: currentExtraction?.channel_id || currentExtraction?.creator_id || null,
+          creator_username: cleanUser,
+          creator_url: profileUrl,
+          message: cleanMsg,
+          action: "profile_opened_copied"
+        })
+      });
+    } catch (apiErr) {
+      console.warn("Could not log outreach prepare audit:", apiErr);
+    }
+
+    // 4. Update UI to show ready / opened state
+    if (sendStatusDisplay) {
+      sendStatusDisplay.innerHTML = `<span style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Instagram profile opened. Your personalized message is ready to paste.</span>`;
+    }
+
+    const manualResult = {
+      success: true,
+      status: "prepared",
+      delivery_method: "manual_instagram",
+      provider: "instagram_direct",
+      message: `Instagram opened for @${cleanUser}. Your personalized message is copied to clipboard and ready to paste.`,
+      details: "Profile opened in a new tab. Paste your prepared message to complete outreach."
+    };
+
+    renderSendResult(manualResult);
+    if (quickModalResultCard) {
+      renderQuickModalSendResult(manualResult);
+    }
   }
 
-  // ==========================================
-  // 10. Automated Instagram API Send Action
-  // ==========================================
+  // B) Automated Official Meta API Dispatch
   async function executeInstagramSend(msgToSend, triggerSource = "console") {
-    if (isSendingActive) return; // Prevent double-clicks / concurrent requests
+    if (isSendingActive) return; // Prevent double-clicks
     const cleanMsg = (msgToSend || "").trim();
     if (!cleanMsg) {
       alert("Please provide a message text before sending.");
       return;
     }
 
-    // Always attempt direct automated API send via backend
     await executeOfficialMetaSend(cleanMsg, triggerSource);
   }
 
-  // ==========================================
-  // Official Meta API Send
-  // ==========================================
   async function executeOfficialMetaSend(cleanMsg, triggerSource = "modal") {
     isSendingActive = true;
     setSendingState(true, "Sending...");
     setQuickModalSendingState(true);
 
-    sendResultCard.style.display = "none";
+    if (sendResultCard) sendResultCard.style.display = "none";
     if (resultMetaInfo) resultMetaInfo.style.display = "none";
     if (quickModalResultCard) quickModalResultCard.style.display = "none";
 
@@ -1112,6 +1383,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Hook up Action Buttons
+  if (openIgContinueBtn) {
+    openIgContinueBtn.addEventListener("click", () => {
+      const msg = (activeDispatchTextarea && activeDispatchTextarea.value) || (outreachTextarea ? outreachTextarea.value : "");
+      handleManualInstagramHandoff(msg, "console");
+    });
+  }
+
+  if (quickModalOpenIgBtn) {
+    quickModalOpenIgBtn.addEventListener("click", () => {
+      const msg = (quickModalTextarea && quickModalTextarea.value) || "";
+      handleManualInstagramHandoff(msg, "modal");
+    });
+  }
+
   if (sendInstagramBtn) {
     sendInstagramBtn.addEventListener("click", () => {
       executeInstagramSend(activeDispatchTextarea ? activeDispatchTextarea.value : "", "console");
@@ -1121,19 +1407,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (quickModalSendBtn) {
     quickModalSendBtn.addEventListener("click", () => {
       executeInstagramSend(quickModalTextarea ? quickModalTextarea.value : "", "modal");
-    });
-  }
-
-  // Dedicated Copy Buttons Handlers
-  if (cardCopyMsgBtn) {
-    cardCopyMsgBtn.addEventListener("click", () => {
-      const text = (outreachTextarea && outreachTextarea.value.trim()) || DEFAULT_TEST_MESSAGE;
-      navigator.clipboard.writeText(text).then(() => {
-        cardCopyMsgBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Copied ✓</span>`;
-        setTimeout(() => {
-          cardCopyMsgBtn.innerHTML = `<i class="fa-regular fa-copy"></i> <span>Copy Message</span>`;
-        }, 2000);
-      });
     });
   }
 
@@ -1177,6 +1450,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!sendResultCard) return;
     sendResultCard.style.display = "block";
 
+    if (res.status === "prepared" || res.delivery_method === "manual_instagram") {
+      sendResultCard.className = "send-result-card success-card";
+      if (resultIcon) resultIcon.className = "fa-solid fa-arrow-up-right-from-square result-card-icon";
+      if (resultTitle) resultTitle.textContent = "Instagram Profile Opened";
+      if (resultMessage) resultMessage.textContent = res.message || "Instagram profile opened in a new tab. Your personalized message is copied to clipboard.";
+      if (resultMetaInfo) resultMetaInfo.style.display = "none";
+      if (retrySendBtn) retrySendBtn.style.display = "none";
+      return;
+    }
+
     if (res.success && res.status === "sent") {
       sendResultCard.className = "send-result-card success-card";
       if (resultIcon) resultIcon.className = "fa-solid fa-circle-check result-card-icon";
@@ -1214,17 +1497,15 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (res.status === "not_messageable" || res.error_code === "RECIPIENT_NOT_ELIGIBLE") {
       sendResultCard.className = "send-result-card ineligible-card";
       if (resultIcon) resultIcon.className = "fa-solid fa-triangle-exclamation result-card-icon";
-      if (resultTitle) resultTitle.textContent = "Unable to send automatically: recipient is not eligible for Meta messaging.";
-      
-      const cleanUser = currentDiscoveredUsername ? currentDiscoveredUsername.replace(/^@/, '') : 'creator';
+      if (resultTitle) resultTitle.textContent = "Automated Meta delivery unavailable for this creator";
       if (resultMessage) {
-        resultMessage.innerHTML = `${escapeHtml(res.details || res.message || res.error || "")}<br><br><strong>Meta Limitation:</strong> Meta's official Instagram Messaging Graph API does not permit initiating cold conversations to arbitrary public usernames. A recipient must first initiate a conversation with your connected Instagram Professional account (generating an Instagram-Scoped ID / IGSID) before direct messages can be delivered via the API.`;
+        resultMessage.innerHTML = `${escapeHtml(res.details || res.message || res.error || "")}<br><br><strong>Outreach is still ready!</strong> Click <strong>"Open Instagram & Continue"</strong> above to send your personalized message directly on Instagram.`;
       }
       if (retrySendBtn) retrySendBtn.style.display = "none";
       if (resultMetaInfo) resultMetaInfo.style.display = "none";
 
       if (sendStatusDisplay) {
-        sendStatusDisplay.innerHTML = `<span style="color: #fbbf24; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> Unable to send automatically: recipient is not eligible for Meta messaging.</span>`;
+        sendStatusDisplay.innerHTML = `<span style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-paper-plane"></i> Ready for manual outreach on Instagram</span>`;
       }
 
     } else if (res.status === "not_configured" || res.error_code === "META_NOT_CONFIGURED") {
@@ -1260,6 +1541,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!quickModalResultCard) return;
     quickModalResultCard.style.display = "block";
 
+    if (res.status === "prepared" || res.delivery_method === "manual_instagram") {
+      quickModalResultCard.className = "send-result-card success-card";
+      if (quickResultIcon) quickResultIcon.className = "fa-solid fa-arrow-up-right-from-square result-card-icon";
+      if (quickResultTitle) quickResultTitle.textContent = "Instagram Profile Opened";
+      if (quickResultMessage) quickResultMessage.textContent = res.message || "Instagram profile opened in a new tab. Your message is copied to clipboard.";
+      if (quickResultMetaInfo) quickResultMetaInfo.style.display = "none";
+      return;
+    }
+
     if (res.success && res.status === "sent") {
       quickModalResultCard.className = "send-result-card success-card";
       if (quickResultIcon) quickResultIcon.className = "fa-solid fa-circle-check result-card-icon";
@@ -1285,9 +1575,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (res.status === "not_messageable" || res.error_code === "RECIPIENT_NOT_ELIGIBLE") {
       quickModalResultCard.className = "send-result-card ineligible-card";
       if (quickResultIcon) quickResultIcon.className = "fa-solid fa-triangle-exclamation result-card-icon";
-      if (quickResultTitle) quickResultTitle.textContent = "Unable to send automatically: recipient is not eligible for Meta messaging.";
+      if (quickResultTitle) quickResultTitle.textContent = "Automated Meta delivery unavailable for this creator";
       if (quickResultMessage) {
-        quickResultMessage.innerHTML = `${escapeHtml(res.details || res.message || res.error || "")}<br><br><strong>Meta Limitation:</strong> Meta's official Instagram Messaging Graph API does not permit initiating cold conversations to arbitrary public usernames. A recipient must first initiate a conversation with your connected Instagram Professional account (generating an Instagram-Scoped ID / IGSID) before direct messages can be delivered via the API.`;
+        quickResultMessage.innerHTML = `${escapeHtml(res.details || res.message || res.error || "")}<br><br><strong>Outreach is still ready!</strong> Click <strong>"Open Instagram & Continue"</strong> to send your personalized message directly on Instagram.`;
       }
       if (quickResultMetaInfo) quickResultMetaInfo.style.display = "none";
 
@@ -1313,6 +1603,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 11. Evidence Trail Table
   // ==========================================
   function renderEvidenceTrail(evidenceItems) {
+    if (!evidenceTableTbody) return;
     evidenceTableTbody.innerHTML = "";
     if (!evidenceItems || evidenceItems.length === 0) {
       evidenceTableTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No evidence items recorded.</td></tr>`;
@@ -1375,7 +1666,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderHistoryList(records) {
     if (!historyList) return;
     if (!records || records.length === 0) {
-      historyList.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--text-muted);">No Instagram messages have been recorded yet.</div>`;
+      historyList.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--text-muted);">No outreach attempts recorded yet.</div>`;
       return;
     }
 
@@ -1387,6 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const isSent = rec.status === "sent";
       const isSim = rec.status === "simulated" || rec.mode === "simulation";
+      const isManual = rec.delivery_method === "manual_instagram" || rec.mode === "cold_outreach" || rec.status === "prepared" || rec.status === "opened" || rec.status === "manual_action_required";
       
       let statusPillClass = "pill-danger";
       let statusLabel = "Failed";
@@ -1397,27 +1689,36 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (isSim) {
         statusPillClass = "pill-neutral";
         statusLabel = "Simulated";
+      } else if (isManual) {
+        statusPillClass = "pill-warning";
+        statusLabel = "Manual action required";
       } else if (rec.status === "rejected") {
         statusPillClass = "pill-warning";
         statusLabel = "Meta Rejected";
       }
 
+      let deliveryMethodLabel = "Manual Instagram";
+      if (rec.delivery_method === "meta_api" || rec.provider === "meta") {
+        deliveryMethodLabel = "Meta API";
+      } else if (rec.delivery_method === "simulation" || rec.provider === "local") {
+        deliveryMethodLabel = "Local Simulation";
+      }
+
       card.innerHTML = `
-        <div class="history-item-header">
+        <div class="history-item-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <div>
-            <strong>To: @${escapeHtml(rec.instagram_username || "unknown")}</strong>
-            ${rec.meta_recipient_id ? `<span style="font-size:11px; color: var(--text-muted);"> (ID: ${rec.meta_recipient_id})</span>` : ""}
+            <strong>Creator: @${escapeHtml((rec.instagram_username || "unknown").replace(/^@/, ''))}</strong>
+            <span style="font-size:12px; color: var(--text-muted); margin-left: 8px;">Channel: Instagram</span>
           </div>
           <span class="pill-badge ${statusPillClass}">${statusLabel}</span>
         </div>
-        <div class="history-item-body">"${escapeHtml(rec.message)}"</div>
-        <div class="history-item-meta">
-          <span>Mode: ${rec.mode || "real"}</span>
-          <span>Type: ${rec.message_type}</span>
-          <span>Time: ${new Date(rec.created_at).toLocaleString()}</span>
-          ${rec.meta_message_id ? `<span>Meta ID: ${rec.meta_message_id}</span>` : ""}
-          ${rec.error ? `<span style="color: #fb7185;">Error: ${escapeHtml(rec.error)}</span>` : ""}
+        <div style="font-size: 12px; color: var(--text-secondary); margin: 6px 0;">
+          <strong>Method:</strong> ${escapeHtml(deliveryMethodLabel)}
+          ${rec.meta_message_id ? `&nbsp;|&nbsp; <strong>Message ID:</strong> <code>${escapeHtml(rec.meta_message_id)}</code>` : ""}
+          <span style="float: right; color: var(--text-muted);">${new Date(rec.sent_at || rec.prepared_at || rec.created_at).toLocaleString()}</span>
         </div>
+        <div class="history-item-body" style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: var(--text-main); margin-top: 6px;">"${escapeHtml(rec.message)}"</div>
+        ${rec.error ? `<div class="history-item-meta" style="color: #fb7185; margin-top: 4px;">Error: ${escapeHtml(rec.error)}</div>` : ""}
       `;
       historyList.appendChild(card);
     });

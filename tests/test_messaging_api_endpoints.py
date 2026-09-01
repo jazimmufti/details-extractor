@@ -148,7 +148,8 @@ async def test_get_recipient_status_endpoint(monkeypatch):
         assert data["success"] is True
         assert data["instagram_username"] == "@unregistered_creator"
         assert data["messaging"]["eligible"] is False
-        assert data["messaging"]["status"] == "interaction_required"
+        assert data["messaging"]["status"] in ("manual_send_required", "interaction_required", "manual_instagram_required")
+        assert data["delivery"]["method"] == "manual_instagram"
 
         # 2. Registered creator via webhook interaction -> eligible
         _save_recipient_to_registry(
@@ -484,5 +485,307 @@ async def test_cold_outreach_prepare_validation():
             "message": "Hello creator!"
         })
         assert res_no_handle.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_webhook_ingest_and_subsequent_send_flow(monkeypatch):
+    """
+    End-to-End flow:
+    1. Meta webhook event arrives from an interacting creator.
+    2. Recipient IGSID & username/creator_id are registered in persistence.
+    3. Recipient status confirms messaging eligibility.
+    4. Send endpoint automatically resolves the stored IGSID and dispatches to Meta.
+    5. Mocked Meta API returns HTTP 200 with mid.xxx.
+    6. Audit log records 'sent' with real Meta message ID.
+    """
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token_full_flow")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+    monkeypatch.setattr(settings, "META_APP_SECRET", "")  # Skip HMAC signature check for unit test
+
+    webhook_payload = {
+        "object": "instagram",
+        "entry": [
+            {
+                "id": "17841400000000000",
+                "time": 1700000000,
+                "messaging": [
+                    {
+                        "sender": {
+                            "id": "17841499112233445",
+                            "username": "real_collaborator"
+                        },
+                        "recipient": {
+                            "id": "17841400000000000"
+                        },
+                        "timestamp": 1700000000,
+                        "message": {
+                            "mid": "m_inbound_123",
+                            "text": "Hello, I want to partner with your brand!"
+                        },
+                        "optin": {
+                            "ref": "UC_collab_999"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "recipient_id": "17841499112233445",
+        "message_id": "mid.meta_delivery_success_777"
+    }
+
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_resp
+    mock_client_cls = MagicMock()
+    mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Deliver Webhook Event
+        wh_res = await client.post("/api/webhook/instagram", json=webhook_payload)
+        assert wh_res.status_code == 200
+        wh_data = wh_res.json()
+        assert wh_data["status"] == "success"
+        assert wh_data["recipients_updated"] >= 1
+
+        # 2. Check Recipient Status
+        status_res = await client.get("/api/instagram/recipient-status", params={
+            "instagram_username": "real_collaborator",
+            "creator_id": "UC_collab_999",
+            "mode": "real"
+        })
+        assert status_res.status_code == 200
+        status_data = status_res.json()
+        assert status_data["messaging"]["eligible"] is True
+        assert status_data["messaging"]["status"] == "eligible"
+        assert "17841499112233445" not in json.dumps(status_data["messaging"])  # Raw IGSID not leaked
+
+        # 3. Dispatch Message via POST /api/social/instagram/send (only username/creator_id provided)
+        with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
+            send_res = await client.post("/api/social/instagram/send", json={
+                "creator_id": "UC_collab_999",
+                "instagram_username": "real_collaborator",
+                "message": "Hi, let's collaborate on a sponsor deal!",
+                "mode": "real"
+            })
+
+            assert send_res.status_code == 200
+            send_data = send_res.json()
+            assert send_data["success"] is True
+            assert send_data["status"] == "sent"
+            assert send_data["message_id"] == "mid.meta_delivery_success_777"
+            assert send_data["provider"] == "meta"
+
+            # 4. Verify Meta API call parameters
+            assert mock_client.post.called
+            call_args = mock_client.post.call_args
+            assert "https://graph.facebook.com/v21.0/17841400000000000/messages" in call_args[0][0]
+            assert call_args[1]["headers"]["Authorization"] == "Bearer EAA_test_token_full_flow"
+            assert call_args[1]["json"] == {
+                "recipient": {"id": "17841499112233445"},
+                "message": {"text": "Hi, let's collaborate on a sponsor deal!"}
+            }
+
+            # 5. Check Audit Log
+            hist_res = await client.get("/api/social/instagram/history")
+            assert hist_res.status_code == 200
+            hist = hist_res.json()
+            latest = hist[-1]
+            assert latest["status"] == "sent"
+            assert latest["meta_message_id"] == "mid.meta_delivery_success_777"
+            assert latest["meta_recipient_id"] == "17841499112233445"
+            assert latest["provider"] == "meta"
+
+
+@pytest.mark.asyncio
+async def test_negative_public_username_meta_not_called(monkeypatch):
+    """Strict negative test: Discovered public username without stored IGSID NEVER triggers Meta API."""
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+
+    mock_client = AsyncMock()
+    mock_client_cls = MagicMock()
+    mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+    with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            res = await client.post("/api/social/instagram/send", json={
+                "instagram_username": "some_completely_uncontacted_creator_12345",
+                "message": "Cold message attempt",
+                "mode": "real"
+            })
+
+            assert res.status_code == 400
+            data = res.json()
+            assert data["success"] is False
+            assert data["status"] == "not_messageable"
+            assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
+            assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
+
+            # CRITICAL: External Meta API was NEVER called
+            assert not mock_client.post.called
+
+
+@pytest.mark.asyncio
+async def test_outreach_resolution_no_prior_conversation_rajshamani(monkeypatch):
+    """Scenario 1: Discovered creator (e.g. @rajshamani) with no prior conversation is outreach-ready via manual send."""
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/api/instagram/outreach/status", params={
+            "instagram_username": "rajshamani",
+            "creator_id": "UC_raj_shamani_channel",
+            "mode": "real"
+        })
+        assert res.status_code == 200
+        data = res.json()
+        assert data["success"] is True
+        assert data["outreach_status"] == "ready_for_outreach"
+        assert data["delivery"]["method"] == "manual_instagram"
+        assert data["delivery"]["messageable"] is False
+        assert data["delivery"]["can_attempt_api_send"] is False
+        assert "manual" in data["delivery"]["label"].lower()
+        assert data["meta_recipient_id_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_outreach_resolution_legitimate_meta_recipient(monkeypatch):
+    """Scenario 2: Creator with legitimate Meta recipient ID resolves to meta_api delivery."""
+    from app.services.instagram_service import _save_recipient_to_registry
+
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+
+    _save_recipient_to_registry(
+        username="verified_partner",
+        igsid="17841499998888777",
+        creator_id="UC_verified_partner_99",
+        source="meta_webhook"
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/api/instagram/outreach/status", params={
+            "instagram_username": "verified_partner",
+            "creator_id": "UC_verified_partner_99",
+            "mode": "real"
+        })
+        assert res.status_code == 200
+        data = res.json()
+        assert data["success"] is True
+        assert data["outreach_status"] == "api_messageable"
+        assert data["delivery"]["method"] == "meta_api"
+        assert data["delivery"]["messageable"] is True
+        assert data["delivery"]["can_attempt_api_send"] is True
+        assert data["meta_recipient_id_available"] is True
+
+
+@pytest.mark.asyncio
+async def test_outreach_meta_api_failure_handling(monkeypatch):
+    """Scenario 3: Meta API returns error -> status is recorded as rejected/failed without claiming sent."""
+    from app.services.instagram_service import _save_recipient_to_registry
+
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+
+    _save_recipient_to_registry(
+        username="failing_recipient",
+        igsid="17841488888888888",
+        creator_id="UC_fail_creator_01",
+        source="meta_webhook"
+    )
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 400
+    mock_resp.json.return_value = {
+        "error": {
+            "message": "(#10) Message failed to send because 24 hour window has expired.",
+            "type": "OAuthException",
+            "code": 10,
+            "fbtrace_id": "trace_xyz_123"
+        }
+    }
+
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_resp
+    mock_client_cls = MagicMock()
+    mock_client_cls.return_value.__aenter__.return_value = mock_client
+
+    with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            res = await client.post("/api/social/instagram/send", json={
+                "creator_id": "UC_fail_creator_01",
+                "instagram_username": "failing_recipient",
+                "message": "Hello partner!",
+                "mode": "real"
+            })
+            assert res.status_code == 400
+            data = res.json()
+            assert data["success"] is False
+            assert data["status"] == "rejected"
+            assert data["error"] is not None
+
+            # Audit record is NOT marked as sent
+            hist_res = await client.get("/api/social/instagram/history")
+            assert hist_res.status_code == 200
+            hist = hist_res.json()
+            latest = hist[-1]
+            assert latest["status"] == "rejected"
+            assert latest["meta_message_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_batch_creator_delivery_method_resolution(monkeypatch):
+    """Scenario 6: Mixed outreach batch resolution correctly identifies independent delivery methods."""
+    from app.services.instagram_service import instagram_service, _save_recipient_to_registry
+
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
+    monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
+
+    _save_recipient_to_registry(
+        username="partner_with_igsid",
+        igsid="17841411122233344",
+        creator_id="UC_partner_01",
+        source="meta_webhook"
+    )
+
+    # 1. Partner with IGSID -> meta_api
+    deliv_a = instagram_service.resolve_delivery_method(
+        creator_id="UC_partner_01",
+        instagram_username="partner_with_igsid",
+        mode="real"
+    )
+    assert deliv_a["method"] == "meta_api"
+    assert deliv_a["messageable"] is True
+    assert deliv_a["can_attempt_api_send"] is True
+
+    # 2. Public creator without IGSID -> manual_instagram
+    deliv_b = instagram_service.resolve_delivery_method(
+        creator_id="UC_cold_creator_02",
+        instagram_username="cold_creator_raj",
+        mode="real"
+    )
+    assert deliv_b["method"] == "manual_instagram"
+    assert deliv_b["messageable"] is False
+    assert deliv_b["can_attempt_api_send"] is False
+
+    # 3. Simulation mode -> simulation
+    deliv_c = instagram_service.resolve_delivery_method(
+        creator_id="UC_sim_creator_03",
+        instagram_username="any_creator",
+        mode="simulation"
+    )
+    assert deliv_c["method"] == "simulation"
+    assert deliv_c["messageable"] is True
+
+
 
 

@@ -18,6 +18,22 @@ class DiscoveryStatus(str, Enum):
     DISCOVERED = "discovered"
 
 
+class OutreachStatus(str, Enum):
+    DISCOVERED = "discovered"
+    AI_MESSAGE_READY = "ai_message_ready"
+    READY_FOR_OUTREACH = "ready_for_outreach"
+    API_MESSAGEABLE = "api_messageable"
+    API_SENT = "api_sent"
+    MANUAL_INSTAGRAM_REQUIRED = "manual_instagram_required"
+    FAILED = "failed"
+
+
+class DeliveryMethod(str, Enum):
+    META_API = "meta_api"
+    MANUAL_INSTAGRAM = "manual_instagram"
+    SIMULATION = "simulation"
+
+
 class RecipientIdentityStatus(str, Enum):
     UNRESOLVED = "unresolved"
     RESOLVED = "resolved"
@@ -42,6 +58,16 @@ class SendStatus(str, Enum):
 class MessagingMode(str, Enum):
     REAL = "real"
     SIMULATION = "simulation"
+
+
+class OutreachDeliveryInfo(BaseModel):
+    """Delivery method capability evaluation for outreach."""
+    method: str = "manual_instagram"  # "meta_api", "manual_instagram", "simulation"
+    messageable: bool = False
+    status: str = "manual_instagram_required"  # OutreachStatus
+    label: str = "Instagram — manual send"
+    details: str = "Automated Meta delivery unavailable for cold outreach. User-mediated Instagram DM handoff ready."
+    can_attempt_api_send: bool = False
 
 
 class DiscoveredInstagramProfile(BaseModel):
@@ -164,11 +190,14 @@ class MessageRecord(BaseModel):
     idempotency_key: Optional[str] = None
     creator_id: Optional[str] = None
     instagram_username: Optional[str] = None
+    instagram_url: Optional[str] = None
     meta_recipient_id: Optional[str] = None
+    meta_recipient_id_available: bool = False
     message: str
     message_type: str = "outreach"
-    mode: str = "cold_outreach"  # "cold_outreach", "real", or "simulation"
-    status: str  # "prepared", "opened_copied", "sent", "simulated", "rejected", "failed"
+    mode: str = "real"  # "real", "simulation", "cold_outreach"
+    delivery_method: str = "manual_instagram"  # "meta_api", "manual_instagram", "simulation"
+    status: str  # "prepared", "opened", "manual_action_required", "sent", "simulated", "rejected", "failed"
     provider: str = "instagram_direct"  # "instagram_direct", "meta", "local"
     meta_message_id: Optional[str] = None
     http_status: Optional[int] = None
@@ -179,7 +208,9 @@ class MessageRecord(BaseModel):
     fbtrace_id: Optional[str] = None
     error: Optional[str] = None
     created_at: str
+    prepared_at: Optional[str] = None
     sent_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 class OutreachGenerateRequest(BaseModel):
