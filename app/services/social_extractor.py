@@ -157,18 +157,120 @@ def classify_url(url: str, text_context: str = "", source: str = "youtube_descri
     return None
 
 
+TEXT_HANDLE_PATTERNS = [
+    {
+        "platform": "instagram",
+        "url_template": "https://instagram.com/{}",
+        "patterns": [
+            re.compile(r"(?:https?://)?(?:www\.)?(?:instagram\.com|instagr\.am)/([a-zA-Z0-9_.-]+)", re.I),
+            re.compile(r"(?:instagram|insta|ig)\s*(?::|-|–|—|\|)?\s*@([a-zA-Z0-9_.-]+)", re.I),
+            re.compile(r"(?:follow\s+(?:me\s+)?on\s+instagram|follow\s+on\s+ig)\s*(?::|-|–|—|\|)?\s*@?([a-zA-Z0-9_.-]+)", re.I),
+        ],
+        "invalid_paths": {"p", "reel", "stories", "explore", "direct", "accounts", "legal", "about", "privacy", "terms"}
+    },
+    {
+        "platform": "twitter",
+        "url_template": "https://twitter.com/{}",
+        "patterns": [
+            re.compile(r"(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)/([a-zA-Z0-9_]{1,15})", re.I),
+            re.compile(r"(?:twitter|x)\s*(?::|-|–|—|\|)?\s*@([a-zA-Z0-9_]{1,15})", re.I),
+        ],
+        "invalid_paths": {"home", "explore", "search", "notifications", "messages", "i", "intent", "tos", "privacy"}
+    },
+    {
+        "platform": "tiktok",
+        "url_template": "https://tiktok.com/@{}",
+        "patterns": [
+            re.compile(r"(?:https?://)?(?:www\.)?tiktok\.com/@([a-zA-Z0-9_.-]+)", re.I),
+            re.compile(r"(?:tiktok)\s*(?::|-|–|—|\|)?\s*@([a-zA-Z0-9_.-]+)", re.I),
+        ],
+        "invalid_paths": {"discover", "upload", "foryou", "live", "legal", "tag"}
+    },
+    {
+        "platform": "threads",
+        "url_template": "https://threads.net/@{}",
+        "patterns": [
+            re.compile(r"(?:https?://)?(?:www\.)?threads\.net/@([a-zA-Z0-9_.-]+)", re.I),
+            re.compile(r"(?:threads)\s*(?::|-|–|—|\|)?\s*@([a-zA-Z0-9_.-]+)", re.I),
+        ],
+        "invalid_paths": {"terms", "privacy"}
+    },
+    {
+        "platform": "linkedin",
+        "url_template": "https://linkedin.com/in/{}",
+        "patterns": [
+            re.compile(r"(?:https?://)?(?:www\.)?linkedin\.com/(?:in|company)/([a-zA-Z0-9_-]+)", re.I),
+            re.compile(r"(?:linkedin)\s*(?::|-|–|—|\|)?\s*@([a-zA-Z0-9_-]+)", re.I),
+        ],
+        "invalid_paths": {"feed", "jobs", "mynetwork", "messaging", "notifications", "pulse"}
+    }
+]
+
+
+def extract_socials_from_text(
+    text: str,
+    source: str = "youtube_description"
+) -> Dict[str, SocialAccount]:
+    """
+    Extracts social accounts from raw unstructured text using regex handle and URL patterns.
+    """
+    found_socials: Dict[str, SocialAccount] = {}
+    if not text:
+        return found_socials
+
+    for rule in TEXT_HANDLE_PATTERNS:
+        platform = rule["platform"]
+        for pat in rule["patterns"]:
+            for match in pat.finditer(text):
+                raw_handle = match.group(1).lstrip("@").rstrip(".,;:!?)'\"")
+                if not raw_handle:
+                    continue
+                if raw_handle.lower() in rule["invalid_paths"]:
+                    continue
+                
+                # Context snippet
+                start = max(0, match.start() - 30)
+                end = min(len(text), match.end() + 30)
+                context = text[start:end].replace("\n", " ").strip()
+                if start > 0:
+                    context = "..." + context
+                if end < len(text):
+                    context = context + "..."
+
+                url = rule["url_template"].format(raw_handle)
+                account = SocialAccount(
+                    platform=platform,
+                    url=url,
+                    username=f"@{raw_handle}",
+                    source=source,
+                    evidence=f"Text pattern match: '{context}'",
+                    confidence="High",
+                )
+                if platform not in found_socials:
+                    found_socials[platform] = account
+                break  # Found for this rule
+
+    return found_socials
+
+
 def extract_socials_and_websites(
     raw_urls: List[Any],
     text_content: str = "",
     source: str = "youtube_description"
 ) -> Tuple[Dict[str, SocialAccount], List[WebsiteInfo]]:
     """
-    Classifies a list of URLs (strings or dicts with metadata) into structured SocialAccounts and WebsiteInfos.
+    Classifies a list of URLs (strings or dicts with metadata) and raw text into structured SocialAccounts and WebsiteInfos.
     """
     socials: Dict[str, SocialAccount] = {}
     websites: List[WebsiteInfo] = []
     seen_websites: set[str] = set()
 
+    # 1. First extract any social handles directly mentioned in text
+    if text_content:
+        text_socials = extract_socials_from_text(text_content, source=source)
+        socials.update(text_socials)
+
+    # 2. Extract from URL list
     for item in raw_urls:
         if not item:
             continue
@@ -210,7 +312,6 @@ def extract_socials_and_websites(
                 socials[platform] = account
             else:
                 existing = socials[platform]
-                # If existing is from description and new is from channel profile, replace
                 if existing.source != "youtube_channel_profile" and account.source == "youtube_channel_profile":
                     socials[platform] = account
                 elif not existing.username and account.username:
@@ -238,3 +339,4 @@ def extract_socials_and_websites(
                 )
 
     return socials, websites
+

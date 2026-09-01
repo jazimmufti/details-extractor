@@ -66,6 +66,7 @@ class ExtractionData(BaseModel):
     """Complete extraction payload."""
     youtube: YouTubeInfo
     social_media: Dict[str, SocialAccount] = Field(default_factory=dict)
+    social_links: Dict[str, SocialAccount] = Field(default_factory=dict)
     emails: List[ContactEmail] = Field(default_factory=list)
     websites: List[WebsiteInfo] = Field(default_factory=list)
     evidence: List[EvidenceItem] = Field(default_factory=list)

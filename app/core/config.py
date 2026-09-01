@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     INSTAGRAM_ACCESS_TOKEN: str = Field(default="", description="Meta User/Page Access Token with instagram_manage_messages permission")
     INSTAGRAM_ACCOUNT_ID: str = Field(default="", description="Instagram Professional/Business Account ID")
     META_GRAPH_API_VERSION: str = Field(default="v21.0", description="Meta Graph API version")
+    META_WEBHOOK_VERIFY_TOKEN: str = Field(default="creator_outreach_verify_token", description="Meta Webhook Verification Token")
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

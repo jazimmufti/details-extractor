@@ -74,8 +74,24 @@ def test_extract_socials_and_websites_combined():
     assert websites[0].domain == "techlead.org"
 
 
+def test_extract_socials_from_plain_text_mentions():
+    text = """
+    Thanks for watching!
+    Instagram: @rajshamani
+    Twitter: @rajshamani
+    TikTok: @rajshamani
+    """
+    socials, websites = extract_socials_and_websites([], text_content=text)
+    assert "instagram" in socials
+    assert socials["instagram"].username == "@rajshamani"
+    assert socials["instagram"].url == "https://instagram.com/rajshamani"
+    assert "twitter" in socials
+    assert "tiktok" in socials
+
+
 def test_empty_socials():
     urls = []
     socials, websites = extract_socials_and_websites(urls, "No links in here!")
     assert socials == {}
     assert websites == []
+

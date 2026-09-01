@@ -1,0 +1,107 @@
+{
+  "verified_creator": {
+    "igsid": "17841409999999999",
+    "username": "verified_creator",
+    "creator_id": null,
+    "instagram_url": "https://instagram.com/verified_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "webhook_messaging",
+    "resolved_via": "webhook_messaging",
+    "last_interaction_at": "2026-09-01T12:06:03.785219+00:00",
+    "updated_at": "2026-09-01T12:06:03.785219+00:00",
+    "first_interaction_at": "2026-09-01T08:39:31.218209+00:00"
+  },
+  "eligible_user": {
+    "igsid": "17841499911122233",
+    "username": "eligible_user",
+    "creator_id": "UC_ELIGIBLE_123",
+    "profile_url": "https://instagram.com/eligible_user",
+    "resolved_via": "webhook_messaging",
+    "first_interaction_at": "2026-09-01T08:39:33.513737+00:00",
+    "last_interaction_at": "2026-09-01T11:17:20.026282+00:00",
+    "updated_at": "2026-09-01T11:17:20.026282+00:00"
+  },
+  "uc_eligible_123": {
+    "igsid": "17841499911122233",
+    "username": "eligible_user",
+    "creator_id": "UC_ELIGIBLE_123",
+    "profile_url": "https://instagram.com/eligible_user",
+    "resolved_via": "webhook_messaging",
+    "first_interaction_at": "2026-09-01T08:39:33.513737+00:00",
+    "last_interaction_at": "2026-09-01T11:17:20.026282+00:00",
+    "updated_at": "2026-09-01T11:17:20.026282+00:00"
+  },
+  "connected_creator": {
+    "igsid": "17841477766655544",
+    "username": "connected_creator",
+    "creator_id": "UC_AUTO_RESOLVED",
+    "profile_url": "https://instagram.com/connected_creator",
+    "resolved_via": "webhook_messaging",
+    "first_interaction_at": "2026-09-01T08:39:33.570365+00:00",
+    "last_interaction_at": "2026-09-01T11:17:20.074302+00:00",
+    "updated_at": "2026-09-01T11:17:20.074302+00:00"
+  },
+  "uc_auto_resolved": {
+    "igsid": "17841477766655544",
+    "username": "connected_creator",
+    "creator_id": "UC_AUTO_RESOLVED",
+    "profile_url": "https://instagram.com/connected_creator",
+    "resolved_via": "webhook_messaging",
+    "first_interaction_at": "2026-09-01T08:39:33.570365+00:00",
+    "last_interaction_at": "2026-09-01T11:17:20.074302+00:00",
+    "updated_at": "2026-09-01T11:17:20.074302+00:00"
+  },
+  "registered_creator": {
+    "igsid": "17841499887766554",
+    "username": "registered_creator",
+    "creator_id": "UC_reg_creator_123",
+    "instagram_url": "https://instagram.com/registered_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T12:05:50.751220+00:00",
+    "updated_at": "2026-09-01T12:05:50.751220+00:00",
+    "first_interaction_at": "2026-09-01T11:25:12.800503+00:00"
+  },
+  "cid:UC_reg_creator_123": {
+    "igsid": "17841499887766554",
+    "username": "registered_creator",
+    "creator_id": "UC_reg_creator_123",
+    "instagram_url": "https://instagram.com/registered_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T12:05:50.751220+00:00",
+    "updated_at": "2026-09-01T12:05:50.751220+00:00",
+    "first_interaction_at": "2026-09-01T11:25:12.800503+00:00"
+  },
+  "auto_resolved_creator": {
+    "igsid": "17841477777777777",
+    "username": "auto_resolved_creator",
+    "creator_id": "UC_auto_123",
+    "instagram_url": "https://instagram.com/auto_resolved_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T12:05:50.776815+00:00",
+    "updated_at": "2026-09-01T12:05:50.776815+00:00",
+    "first_interaction_at": "2026-09-01T11:25:12.828936+00:00"
+  },
+  "cid:UC_auto_123": {
+    "igsid": "17841477777777777",
+    "username": "auto_resolved_creator",
+    "creator_id": "UC_auto_123",
+    "instagram_url": "https://instagram.com/auto_resolved_creator",
+    "messaging_eligible": true,
+    "status": "eligible",
+    "source": "meta_webhook",
+    "resolved_via": "meta_webhook",
+    "last_interaction_at": "2026-09-01T12:05:50.776815+00:00",
+    "updated_at": "2026-09-01T12:05:50.776815+00:00",
+    "first_interaction_at": "2026-09-01T11:25:12.828936+00:00"
+  }
+}

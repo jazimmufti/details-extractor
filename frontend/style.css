@@ -1515,6 +1515,12 @@ body {
   color: var(--text-secondary);
 }
 
+.send-action-btns-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .primary-send-btn {
   height: 48px;
   padding: 0 26px;
@@ -1945,9 +1951,247 @@ body {
   border-top: 1px solid var(--border-subtle);
 }
 
-/* ==========================================
-   Footer
-   ========================================== */
+/* Mode Switcher in Header */
+.mode-switch-container {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mode-toggle-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 3px;
+  display: flex;
+  gap: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.mode-pill {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 16px;
+  color: var(--text-muted);
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mode-toggle-btn.real-active .real-pill {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.mode-toggle-btn.sim-active .sim-pill {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+/* Card Level Instagram Messaging Snippet */
+.ig-messaging-status-snippet {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin: 10px 0 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-snippet-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.snippet-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.status-snippet-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.meta-rules-link-btn {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: var(--transition-smooth);
+}
+
+.meta-rules-link-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+/* Mode Badges */
+.mode-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mode-badge.real {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.mode-badge.sim {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+/* Alternative Outreach Banner */
+.alt-outreach-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.alt-outreach-layout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.alt-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.alt-text-wrap {
+  flex: 1;
+  min-width: 220px;
+}
+
+.alt-text-wrap h4 {
+  font-size: 14px;
+  color: #e2e8f0;
+  margin-bottom: 3px;
+}
+
+.alt-text-wrap p {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.alt-action-btn {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-smooth);
+}
+
+.alt-action-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Educational Rules Modal */
+.meta-rules-window {
+  max-width: 600px;
+}
+
+.meta-rules-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rules-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.rules-card h4 {
+  font-size: 13px;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rules-card p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rules-card code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+/* Disabled Send Button */
+.primary-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+.primary-send-btn:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Footer */
 .app-footer {
   margin-top: 60px;
   padding: 24px;
@@ -1995,5 +2239,14 @@ body {
     width: 100%;
     justify-content: flex-end;
   }
+  .alt-outreach-layout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .alt-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
+
 

@@ -1,60 +1,177 @@
-"""Pydantic data models for Instagram Messaging & AI Outreach."""
+"""Pydantic data models for Instagram Messaging & AI Outreach.
 
+Enforces strict separation between:
+1. Public Instagram Discovery (username, URL, evidence)
+2. Meta Recipient Identity (IGSID, conversation reference, resolution source)
+3. Messaging Capability (sendability under official Meta API rules)
+4. Message Attempt & Audit Records (real vs simulated dispatch logs)
+"""
+
+from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
-class InstagramSendRequest(BaseModel):
-    """Payload to send an Instagram Direct Message via official Meta API."""
-    creator_id: Optional[str] = Field(default=None, description="Internal or external creator identifier")
-    instagram_user_id: Optional[str] = Field(default=None, description="Meta Instagram-Scoped User ID (IGSID) or Page-Scoped ID (PSID)")
-    instagram_username: Optional[str] = Field(default=None, description="Discovered Instagram handle/username")
-    message: str = Field(..., description="Message text content to send to the recipient")
-    message_type: str = Field(default="test", description="Message type: 'test' or 'outreach'")
+class DiscoveryStatus(str, Enum):
+    NOT_DISCOVERED = "not_discovered"
+    DISCOVERED = "discovered"
 
 
-class InstagramSendResponse(BaseModel):
-    """Response returned after attempting an official Meta Instagram DM send."""
-    success: bool = Field(..., description="Whether Meta API confirmed message delivery")
-    status: str = Field(..., description="Send status: 'sent', 'failed', 'not_eligible', 'not_configured'")
-    message_id: Optional[str] = Field(default=None, description="Meta message identifier if send succeeded")
-    recipient_id: Optional[str] = Field(default=None, description="Meta recipient ID if available")
-    error: Optional[str] = Field(default=None, description="Human-readable error description")
-    details: Optional[str] = Field(default=None, description="Detailed technical or policy context")
-    provider: str = Field(default="meta", description="Messaging infrastructure provider ('meta')")
-    sent_at: Optional[str] = Field(default=None, description="ISO timestamp when Meta acknowledged the send")
+class RecipientIdentityStatus(str, Enum):
+    UNRESOLVED = "unresolved"
+    RESOLVED = "resolved"
+
+
+class MessagingStatus(str, Enum):
+    NOT_CONFIGURED = "not_configured"
+    NOT_MESSAGEABLE = "not_messageable"
+    REQUIRES_INTERACTION = "requires_interaction"
+    MESSAGEABLE = "messageable"
+    API_ERROR = "api_error"
+
+
+class SendStatus(str, Enum):
+    NOT_ATTEMPTED = "not_attempted"
+    SIMULATED = "simulated"
+    SENT = "sent"
+    REJECTED = "rejected"
+    FAILED = "failed"
+
+
+class MessagingMode(str, Enum):
+    REAL = "real"
+    SIMULATION = "simulation"
+
+
+class DiscoveredInstagramProfile(BaseModel):
+    """Public creator discovery info extracted from YouTube/social metadata."""
+    status: DiscoveryStatus = DiscoveryStatus.NOT_DISCOVERED
+    username: Optional[str] = None
+    profile_url: Optional[str] = None
+    source: Optional[str] = None
+    evidence: Optional[str] = None
+    confidence: Optional[str] = None
+    discovered_at: Optional[str] = None
+
+
+class MetaRecipient(BaseModel):
+    """Meta-specific recipient identity. Never guessed or populated from username."""
+    status: RecipientIdentityStatus = RecipientIdentityStatus.UNRESOLVED
+    recipient_id: Optional[str] = None
+    recipient_id_type: Optional[str] = None  # "igsid", "psid"
+    conversation_id: Optional[str] = None
+    resolved_at: Optional[str] = None
+    resolved_via: Optional[str] = None  # "persisted_interaction", "webhook_event", "developer_test_input"
+
+
+class MessagingCapability(BaseModel):
+    """Evaluated capability to send an official message under Meta platform rules."""
+    status: MessagingStatus = MessagingStatus.NOT_CONFIGURED
+    reason: str
+    can_attempt_send: bool = False
+    checked_at: str
+    provider: str = "meta"  # "meta" or "local"
+    window_state: Optional[str] = None  # "active_24h", "requires_interaction", "unknown"
+    permissions_state: Optional[str] = None  # "configured", "unconfigured", "missing_permission"
+    requirements: List[str] = Field(default_factory=list)
 
 
 class InstagramEligibilityRequest(BaseModel):
     """Request to evaluate if a discovered creator is eligible for Meta API messaging."""
     instagram_username: Optional[str] = Field(default=None, description="Discovered Instagram handle")
     instagram_user_id: Optional[str] = Field(default=None, description="Known Instagram Scoped User ID (IGSID)")
+    mode: str = Field(default="real", description="Evaluation mode: 'real' or 'simulation'")
 
 
 class InstagramEligibilityResponse(BaseModel):
-    """Detailed messaging eligibility status under Meta's current API rules."""
-    configured: bool = Field(..., description="Whether Meta API credentials are active in backend")
-    discovered: bool = Field(..., description="Whether an Instagram account was discovered")
-    username: Optional[str] = Field(default=None, description="Discovered Instagram username")
-    instagram_user_id: Optional[str] = Field(default=None, description="Resolved or provided Instagram Scoped ID")
-    is_eligible: bool = Field(..., description="Whether a message can be delivered through Meta API now")
-    status: str = Field(..., description="Eligibility status: 'eligible', 'not_eligible', 'not_configured', 'not_discovered'")
-    reason: str = Field(..., description="Human-readable explanation of messaging status")
-    requirements: List[str] = Field(default_factory=list, description="Meta API policy/technical requirements")
+    """Detailed messaging eligibility status with explicit separation of concerns."""
+    mode: str = "real"
+    can_send: bool = Field(..., description="Authoritative boolean: whether a message send can be initiated")
+    discovery: DiscoveredInstagramProfile
+    recipient: MetaRecipient
+    capability: MessagingCapability
+
+    # Backwards-compatible convenience getters for frontend consumption
+    @property
+    def configured(self) -> bool:
+        return self.capability.status != MessagingStatus.NOT_CONFIGURED
+
+    @property
+    def is_eligible(self) -> bool:
+        return self.can_send
+
+    @property
+    def status(self) -> str:
+        return self.capability.status.value
+
+    @property
+    def reason(self) -> str:
+        return self.capability.reason
+
+    @property
+    def username(self) -> Optional[str]:
+        return self.discovery.username
+
+    @property
+    def instagram_user_id(self) -> Optional[str]:
+        return self.recipient.recipient_id
+
+
+class InstagramSendRequest(BaseModel):
+    """Payload to send an Instagram Direct Message via official Meta API or simulation."""
+    idempotency_key: Optional[str] = Field(default=None, description="Unique client key to prevent duplicate sends")
+    creator_id: Optional[str] = Field(default=None, description="Internal or external creator identifier")
+    instagram_user_id: Optional[str] = Field(default=None, description="Meta Instagram-Scoped User ID (IGSID)")
+    instagram_username: Optional[str] = Field(default=None, description="Discovered Instagram handle/username")
+    message: str = Field(..., min_length=1, max_length=1000, description="Message text content")
+    message_type: str = Field(default="test", description="Message type: 'test' or 'outreach'")
+    mode: str = Field(default="real", description="Dispatch mode: 'real' or 'simulation'")
+
+
+class MetaErrorDiagnostics(BaseModel):
+    """Structured diagnostics from raw Meta Graph API error body."""
+    http_status: Optional[int] = None
+    code: Optional[int] = None
+    error_subcode: Optional[int] = None
+    type: Optional[str] = None
+    message: Optional[str] = None
+    fbtrace_id: Optional[str] = None
+
+
+class InstagramSendResponse(BaseModel):
+    """Response returned after attempting a message send."""
+    success: bool = Field(..., description="Whether Meta API confirmed delivery (or simulation succeeded)")
+    status: str = Field(..., description="Send status: 'sent', 'simulated', 'rejected', 'failed', 'not_configured'")
+    mode: str = Field(default="real", description="'real' or 'simulation'")
+    message_id: Optional[str] = Field(default=None, description="Meta message ID (None in simulation)")
+    recipient_id: Optional[str] = Field(default=None, description="Recipient identifier")
+    error: Optional[str] = Field(default=None, description="Human-readable error explanation")
+    details: Optional[str] = Field(default=None, description="Technical diagnostics")
+    provider: str = Field(default="meta", description="'meta' or 'local'")
+    sent_at: Optional[str] = Field(default=None, description="ISO timestamp")
+    meta_diagnostics: Optional[MetaErrorDiagnostics] = None
 
 
 class MessageRecord(BaseModel):
     """Auditable log entry for recorded message attempts."""
     id: str
+    idempotency_key: Optional[str] = None
     creator_id: Optional[str] = None
     instagram_username: Optional[str] = None
-    instagram_user_id: Optional[str] = None
+    meta_recipient_id: Optional[str] = None
     message: str
-    message_type: str = "test"
-    status: str
-    provider: str = "meta"
+    message_type: str = "outreach"
+    mode: str = "cold_outreach"  # "cold_outreach", "real", or "simulation"
+    status: str  # "prepared", "opened_copied", "sent", "simulated", "rejected", "failed"
+    provider: str = "instagram_direct"  # "instagram_direct", "meta", "local"
     meta_message_id: Optional[str] = None
+    http_status: Optional[int] = None
+    meta_error_code: Optional[int] = None
+    meta_error_subcode: Optional[int] = None
+    meta_error_type: Optional[str] = None
+    meta_error_message: Optional[str] = None
+    fbtrace_id: Optional[str] = None
     error: Optional[str] = None
     created_at: str
     sent_at: Optional[str] = None

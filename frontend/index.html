@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Creator Discovery & AI Outreach • Instagram Messaging</title>
+  <title>Creator Discovery & AI Outreach • Official Meta Messaging</title>
   <meta name="description" content="Evidence-based creator discovery, verified contact extraction, AI outreach generation, and official Meta Instagram messaging integration." />
   
   <!-- Modern Google Fonts -->
@@ -31,11 +31,11 @@
         </div>
         <div class="brand-info">
           <span class="brand-name">Creator Discovery & Outreach</span>
-          <span class="brand-tagline">AI Intelligence & Official Meta Messaging</span>
+          <span class="brand-tagline">AI Intelligence & Official Meta Graph API</span>
         </div>
       </div>
 
-      <!-- Real-time System Connectivity Status -->
+      <!-- Real-time System Connectivity Status & Mode Toggle -->
       <div class="system-status-group">
         <div id="status-yt" class="status-pill checking" title="YouTube Data API v3 Status">
           <span class="status-dot"></span> YouTube API
@@ -46,9 +46,18 @@
         <div id="status-meta" class="status-pill checking" title="Meta Instagram Graph API Status">
           <span class="status-dot"></span> Meta API
         </div>
-        <div class="test-mode-badge" title="Running in Development & Safe Test Mode">
-          <i class="fa-solid fa-flask"></i> TEST MODE
+        
+        <!-- Global Mode Selector Switch -->
+        <div class="mode-switch-container">
+          <button type="button" id="mode-toggle-btn" class="mode-toggle-btn real-active" title="Switch between Real Meta API and Local Simulation Mode">
+            <span class="mode-pill real-pill"><i class="fa-solid fa-cloud"></i> REAL META</span>
+            <span class="mode-pill sim-pill"><i class="fa-solid fa-flask"></i> SIMULATION</span>
+          </button>
         </div>
+
+        <button type="button" id="view-history-btn" class="header-icon-btn" title="View Send History & Audit Logs">
+          <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
+        </button>
       </div>
     </div>
   </header>
@@ -100,83 +109,67 @@
           <button type="button" class="sample-chip" data-url="https://www.youtube.com/@MrBeast">
             <i class="fa-brands fa-youtube"></i> @MrBeast
           </button>
-          <button type="button" class="sample-chip" data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
-            <i class="fa-solid fa-play"></i> Video URL
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/@Veritasium">
+            <i class="fa-brands fa-youtube"></i> @Veritasium
           </button>
-          <button type="button" class="sample-chip" data-url="https://www.youtube.com/shorts/3f5t3g4e_rM">
-            <i class="fa-solid fa-film"></i> YouTube Short
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/@backwardpointpod">
+            <i class="fa-brands fa-youtube"></i> @backwardpointpod
           </button>
         </div>
       </div>
     </section>
 
-    <!-- Pipeline Progress Indicator (Visible when loading) -->
-    <section id="pipeline-progress" class="pipeline-progress-section" style="display: none;">
-      <div class="pipeline-card glass-panel">
-        <div class="pipeline-header">
-          <div class="spinner-ring"></div>
-          <div>
-            <h3 class="pipeline-title">Extracting Creator Intelligence</h3>
-            <p id="pipeline-status-text" class="pipeline-desc">Connecting to YouTube API & scraping public profile...</p>
-          </div>
-        </div>
-        <div class="progress-bar-track">
-          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 20%;"></div>
-        </div>
-        <div class="pipeline-stepper">
-          <span class="step-badge active" id="p-step-1"><i class="fa-solid fa-check"></i> Parse URL</span>
-          <span class="step-badge" id="p-step-2"><i class="fa-solid fa-circle"></i> Fetch Metadata</span>
-          <span class="step-badge" id="p-step-3"><i class="fa-solid fa-circle"></i> Extract Contacts</span>
-          <span class="step-badge" id="p-step-4"><i class="fa-solid fa-circle"></i> Verify Instagram</span>
-          <span class="step-badge" id="p-step-5"><i class="fa-solid fa-circle"></i> Generate AI Outreach</span>
-        </div>
+    <!-- Animated Pipeline Progress Bar -->
+    <div id="pipeline-progress" class="pipeline-progress-container" style="display: none;">
+      <div class="progress-info-row">
+        <span class="progress-status-text" id="pipeline-status-text">Resolving creator profile...</span>
+        <span class="progress-indicator"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
       </div>
-    </section>
-
-    <!-- Global Error Banner -->
-    <div id="error-banner" class="notification-banner error-banner" style="display: none;">
-      <i class="fa-solid fa-triangle-exclamation banner-icon"></i>
-      <div class="banner-body">
-        <h4 id="error-title">Unable to Complete Discovery</h4>
-        <p id="error-message">An unexpected error occurred while fetching creator data.</p>
+      <div class="progress-track">
+        <div id="progress-bar-fill" class="progress-bar-fill"></div>
       </div>
-      <button id="dismiss-error-btn" class="banner-close-btn" title="Dismiss">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
     </div>
 
-    <!-- Results Section (Visible after discovery) -->
+    <!-- Error Alert Banner -->
+    <div id="error-banner" class="alert-banner error-banner glass-panel" style="display: none;">
+      <i class="fa-solid fa-triangle-exclamation banner-icon"></i>
+      <div class="banner-body">
+        <h4 id="error-title">Extraction Error</h4>
+        <p id="error-message">Unable to extract intelligence from the provided link.</p>
+      </div>
+      <button type="button" id="dismiss-error-btn" class="banner-close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Main Dynamic Workspace (Shown once creator is fetched) -->
     <div id="creator-workspace" class="creator-workspace-container" style="display: none;">
       
       <!-- Top Action Bar -->
       <div class="workspace-topbar">
-        <div class="workspace-title-group">
-          <span class="status-indicator-badge live-badge"><span class="pulse-dot"></span> Creator Discovered</span>
-          <span id="meta-summary-tag" class="meta-summary-tag">Verified Public Intelligence</span>
+        <div class="workspace-mode-banner" id="workspace-mode-indicator">
+          <i class="fa-solid fa-shield-halved"></i> <span id="workspace-mode-text">Mode: Official Meta Graph API</span>
         </div>
-        <div class="topbar-button-group">
-          <button id="view-history-btn" class="secondary-btn" title="View Instagram Sent Message Logs">
-            <i class="fa-solid fa-clock-rotate-left"></i> Message History
-          </button>
-          <button id="view-evidence-trail-btn" class="secondary-btn" title="Auditable Proof Trail">
-            <i class="fa-solid fa-shield-check"></i> Evidence Trail
+        <div class="workspace-quick-actions">
+          <button type="button" id="view-evidence-trail-btn" class="action-link-btn" title="View Source Quotes">
+            <i class="fa-solid fa-fingerprint"></i> <span>Evidence Trail</span>
           </button>
         </div>
       </div>
 
-      <!-- 1. CREATOR CARD -->
+      <!-- 1. CREATOR PROFILE SUMMARY CARD -->
       <section class="section-card creator-profile-card glass-panel">
         <div class="creator-profile-layout">
-          <!-- Avatar -->
-          <div class="creator-avatar-container">
-            <img id="creator-avatar-img" src="" alt="Creator Avatar" class="creator-avatar" style="display: none;" />
-            <div id="creator-avatar-fallback" class="avatar-fallback">
+          <!-- Avatar & Badge -->
+          <div class="creator-avatar-wrap">
+            <img id="creator-avatar-img" class="creator-avatar" src="" alt="Creator Avatar" style="display: none;" />
+            <div id="creator-avatar-fallback" class="avatar-fallback-badge">
               <i class="fa-solid fa-user"></i>
             </div>
-            <span class="platform-avatar-pill" id="platform-badge"><i class="fa-brands fa-youtube"></i></span>
+            <span class="platform-badge" id="creator-platform-badge">
+              <i class="fa-brands fa-youtube"></i>
+            </span>
           </div>
 
-          <!-- Profile Details -->
+          <!-- Info & Metrics -->
           <div class="creator-details-col">
             <div class="creator-name-row">
               <h2 id="creator-name" class="creator-title">Creator Name</h2>
@@ -261,14 +254,14 @@
             </div>
           </div>
 
-          <!-- INSTAGRAM CARD -->
+          <!-- INSTAGRAM CARD (With strict separation of Discovery vs Messaging Capability) -->
           <div class="intel-box instagram-box glass-panel">
             <div class="intel-box-header">
               <div class="intel-label-group">
                 <div class="icon-circle instagram-icon-circle"><i class="fa-brands fa-instagram"></i></div>
                 <div>
                   <h4 class="intel-box-title">Instagram Profile</h4>
-                  <span class="intel-box-subtitle">Reliably identified handle</span>
+                  <span class="intel-box-subtitle">Reliably identified account</span>
                 </div>
               </div>
               <span id="ig-discovery-pill" class="pill-badge pill-neutral">Checking</span>
@@ -282,16 +275,31 @@
                   <span id="discovered-ig-username" class="highlight-ig">username</span>
                 </div>
                 <div class="ig-card-actions">
-                  <button type="button" id="quick-send-ig-btn" class="mini-action-btn send-test-mini-btn" title="Send Test Message via Meta API">
-                    <i class="fa-brands fa-instagram"></i> <span>Send Test Message</span>
+                  <button type="button" id="quick-send-ig-btn" class="mini-action-btn primary-mini-btn" title="Send Instagram Direct Message">
+                    <i class="fa-brands fa-instagram"></i> <span id="quick-send-btn-label">Send Message</span>
                   </button>
-                  <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" title="Open Instagram">
-                    <span>Open Instagram</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn secondary-mini-btn" title="View Profile on Instagram">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>View Profile</span>
                   </a>
                 </div>
               </div>
+
+              <!-- Meta Messaging Status Snippet -->
+              <div class="ig-messaging-status-snippet" id="ig-card-messaging-status">
+                <div class="status-snippet-row">
+                  <span class="snippet-label">Meta Messaging:</span>
+                  <span id="ig-card-capability-badge" class="pill-badge pill-neutral">Ready to Send</span>
+                </div>
+                <p id="ig-card-capability-hint" class="status-snippet-hint">
+                  Click "Send Message" to attempt direct delivery via Meta API.
+                </p>
+              </div>
+
               <div class="evidence-source-tag">
                 <i class="fa-solid fa-circle-check"></i> <span id="ig-evidence-text">Discovered from verified channel link</span>
+                <button type="button" id="open-meta-rules-btn" class="meta-rules-link-btn" title="Learn why Meta requires prior interaction for cold DMs">
+                  <i class="fa-solid fa-circle-question"></i> Meta Rules
+                </button>
               </div>
             </div>
 
@@ -364,7 +372,7 @@
         </div>
       </section>
 
-      <!-- 4. INSTAGRAM TEST MESSAGING SECTION -->
+      <!-- 4. INSTAGRAM MESSAGING CONSOLE (Strict Separation of Discovery vs Messaging Capability) -->
       <section class="section-card instagram-messaging-section glass-panel">
         <div class="section-header-row">
           <div class="section-title-wrap">
@@ -372,9 +380,9 @@
             <div>
               <div class="heading-with-badge">
                 <h3 class="section-heading">Instagram Messaging</h3>
-                <span class="test-badge-inline">TEST MODE</span>
+                <span id="console-mode-badge" class="mode-badge real">REAL META API</span>
               </div>
-              <p class="section-caption">Real message dispatch through official Meta Graph API</p>
+              <p class="section-caption">Official Meta Graph API messaging client & local test simulator</p>
             </div>
           </div>
 
@@ -384,40 +392,53 @@
           </div>
         </div>
 
-        <!-- Eligibility Status Explanatory Banner -->
+        <!-- Explanatory Capability Banner -->
         <div id="eligibility-banner" class="eligibility-banner info-mode">
           <div class="banner-layout">
             <i class="fa-solid fa-circle-info banner-status-icon" id="eligibility-banner-icon"></i>
             <div class="banner-text-content">
-              <h5 id="eligibility-banner-title">Meta API Eligibility Evaluation</h5>
+              <h5 id="eligibility-banner-title">Meta Graph API Messaging Capability</h5>
               <p id="eligibility-banner-desc">
-                Evaluating discovered Instagram handle with Meta Graph API messaging rules...
+                Evaluating discovered Instagram handle against official Meta Graph API messaging rules...
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Test Message Configuration Box -->
+        <!-- Alternative Outreach Path Banner (Displayed when Instagram is not messageable via API) -->
+        <div id="alt-outreach-banner" class="alt-outreach-card glass-panel" style="display: none;">
+          <div class="alt-outreach-layout">
+            <div class="alt-icon-wrap"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <div class="alt-text-wrap">
+              <h4>Alternative Outreach Channel Available</h4>
+              <p>Direct Meta Instagram DM is unavailable without creator interaction, but a <strong>verified business email</strong> was discovered for this creator.</p>
+            </div>
+            <button type="button" id="use-email-outreach-btn" class="alt-action-btn">
+              <i class="fa-solid fa-copy"></i> Copy Outreach for Email
+            </button>
+          </div>
+        </div>
+        <!-- Automated Direct Messaging Console -->
         <div class="messaging-console-card">
           <div class="console-meta-grid">
             <div class="console-meta-field">
-              <span class="console-meta-label">Instagram Discovery:</span>
+              <span class="console-meta-label">1. Discovered Account:</span>
               <span id="console-discovery-val" class="console-meta-value text-muted">Not discovered</span>
             </div>
             <div class="console-meta-field">
-              <span class="console-meta-label">Messaging Recipient:</span>
-              <span id="console-recipient-val" class="console-meta-value text-muted">No recipient available</span>
+              <span class="console-meta-label">2. Recipient Status:</span>
+              <span id="console-recipient-val" class="console-meta-value text-muted">Evaluating...</span>
             </div>
             <div class="console-meta-field">
-              <span class="console-meta-label">Meta Official API:</span>
-              <span id="console-api-status-val" class="console-meta-value">Graph API v21.0</span>
+              <span class="console-meta-label">3. Messaging Mode:</span>
+              <span id="console-capability-val" class="console-meta-value highlight-ig">Meta Graph API</span>
             </div>
           </div>
 
           <!-- Message Payload Selector Tabs -->
           <div class="message-tabs-row">
             <button type="button" class="msg-tab active" id="tab-test-msg">
-              <i class="fa-solid fa-vial"></i> Standard Test Message
+              <i class="fa-solid fa-vial"></i> Fixed Test Message
             </button>
             <button type="button" class="msg-tab" id="tab-ai-msg">
               <i class="fa-solid fa-wand-magic-sparkles"></i> AI Outreach Message
@@ -433,28 +454,6 @@
             <textarea id="active-dispatch-textarea" class="active-dispatch-textarea" rows="3">Hi! This is a test message from my AI creator outreach application.</textarea>
           </div>
 
-          <!-- Optional Scoped Recipient ID Input (for registered testers/IGSID) -->
-          <div class="advanced-recipient-toggle" id="advanced-recipient-toggle">
-            <button type="button" id="toggle-recipient-id-btn" class="link-like-btn">
-              <i class="fa-solid fa-sliders"></i> <span>Developer / Tester Options (IGSID)</span>
-            </button>
-            <div id="recipient-id-drawer" class="recipient-id-drawer" style="display: none;">
-              <p class="drawer-helper-text">
-                If the recipient has interacted with your Instagram Business account or is a registered Meta App Tester, enter their Instagram-Scoped User ID (IGSID) below:
-              </p>
-              <div class="igsid-input-group">
-                <input
-                  type="text"
-                  id="custom-igsid-input"
-                  class="igsid-input-field"
-                  placeholder="e.g. 17841401234567890 (Instagram Scoped User ID)"
-                  spellcheck="false"
-                />
-                <button type="button" id="apply-igsid-btn" class="apply-igsid-btn">Apply IGSID</button>
-              </div>
-            </div>
-          </div>
-
           <!-- Send Action Bar & Dynamic Result -->
           <div class="send-action-row">
             <div class="send-status-display" id="send-status-display">
@@ -462,27 +461,24 @@
             </div>
 
             <button type="button" id="send-instagram-btn" class="primary-send-btn">
-              <span class="btn-text"><i class="fa-brands fa-instagram"></i> Send Test Message</span>
-              <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending via Meta...</span>
+              <span class="btn-text" id="send-btn-main-label"><i class="fa-brands fa-instagram"></i> Send</span>
+              <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending...</span>
             </button>
           </div>
 
-          <!-- Real API Result Notification (Success or Real Error) -->
+          <!-- Direct API Send Result Card -->
           <div id="send-result-card" class="send-result-card" style="display: none;">
             <div class="result-card-inner">
               <i class="result-card-icon" id="result-icon"></i>
               <div class="result-card-details">
                 <h4 id="result-title">Message Status</h4>
-                <p id="result-message">Message details...</p>
+                <p id="result-message">Details...</p>
                 <div id="result-meta-info" class="result-meta-info" style="display: none;">
                   <span class="meta-item">Message ID: <code id="result-msg-id">--</code></span>
-                  <span class="meta-item">Sent At: <span id="result-timestamp">--</span></span>
-                  <span class="meta-item">Provider: <code>Meta Graph API</code></span>
+                  <span class="meta-item">Provider: <code id="result-provider-lbl">Meta Graph API</code></span>
+                  <span class="meta-item">Timestamp: <span id="result-timestamp">--</span></span>
                 </div>
               </div>
-              <button type="button" id="retry-send-btn" class="retry-btn" style="display: none;">
-                <i class="fa-solid fa-rotate-right"></i> Try Again
-              </button>
             </div>
           </div>
         </div>
@@ -495,22 +491,21 @@
             <i class="fa-solid fa-shield-halved section-icon"></i>
             <div>
               <h3 class="section-heading">Auditable Evidence Trail</h3>
-              <p class="section-caption">Verbatim raw text snippets verifying each extracted entity</p>
+              <p class="section-subheading">Verified discovery citations, confidence scores, and logged outreach actions</p>
             </div>
           </div>
-          <button type="button" id="close-evidence-btn" class="mini-action-btn">
-            <i class="fa-solid fa-xmark"></i> Close
-          </button>
+          <button id="close-evidence-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <div class="evidence-table-container">
           <table class="evidence-table">
             <thead>
               <tr>
-                <th>Entity Field</th>
+                <th>Extracted Field</th>
+                <th>Discovered Value</th>
                 <th>Confidence</th>
-                <th>Source</th>
-                <th>Verbatim Evidence Match</th>
+                <th>Source Location</th>
+                <th>Evidence Snippet</th>
               </tr>
             </thead>
             <tbody id="evidence-table-tbody">
@@ -522,78 +517,38 @@
     </div>
   </main>
 
-  <!-- Message History Modal -->
-  <div id="history-modal" class="modal-backdrop" style="display: none;">
-    <div class="modal-window glass-panel">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <i class="fa-solid fa-clock-rotate-left modal-icon"></i>
-          <div>
-            <h3>Meta Instagram Message History</h3>
-            <p>Auditable log of all real send attempts</p>
-          </div>
-        </div>
-        <button id="close-history-modal-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <div id="history-list" class="history-list">
-          <!-- Dynamic message history cards -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Instagram Test Message Modal -->
+  <!-- Instagram Direct Message Send Modal -->
   <div id="quick-send-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quick-send-modal-title">
     <div class="modal-window quick-send-modal-window glass-panel">
       <div class="modal-header">
         <div class="modal-title-group">
           <div class="icon-circle instagram-icon-circle"><i class="fa-brands fa-instagram"></i></div>
           <div>
-            <h3 id="quick-send-modal-title">Send Test Message</h3>
-            <p>Official Meta Graph API Direct Message</p>
+            <h3 id="quick-send-modal-title">Instagram Direct Message</h3>
+            <p id="quick-send-modal-subtitle">Official Meta Graph API Automated Delivery</p>
           </div>
         </div>
         <button id="close-quick-send-modal-btn" class="modal-close-icon" title="Close dialog (Esc)"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="modal-body quick-send-modal-body">
-        <!-- Recipient & Sender Meta Details -->
+        <!-- Recipient & Sender Details -->
         <div class="quick-modal-meta-grid">
           <div class="quick-meta-card">
-            <span class="quick-meta-label">To (Discovered Account):</span>
+            <span class="quick-meta-label">Instagram Handle:</span>
             <span id="quick-modal-recipient-username" class="quick-meta-val highlight-ig">@username</span>
           </div>
           <div class="quick-meta-card">
-            <span class="quick-meta-label">From (Connected Account):</span>
-            <span id="quick-modal-sender-account" class="quick-meta-val">Connected Instagram Account</span>
+            <span class="quick-meta-label">Delivery Channel:</span>
+            <span id="quick-modal-status-badge" class="pill-badge pill-neutral">Meta Send API</span>
           </div>
         </div>
 
-        <!-- Eligibility Status Box inside Modal -->
+        <!-- Guidance Box -->
         <div id="quick-modal-eligibility-box" class="quick-eligibility-box checking">
-          <div class="eligibility-status-row">
-            <span class="status-indicator-label">Messaging Status:</span>
-            <span id="quick-modal-status-badge" class="pill-badge pill-neutral">Checking Eligibility...</span>
-          </div>
           <p id="quick-modal-status-explanation" class="quick-status-explanation">
-            Evaluating recipient eligibility with Meta Graph API rules...
+            Click <strong>"Send"</strong> to attempt automated message delivery through Meta's official API.
           </p>
-        </div>
-
-        <!-- Optional IGSID drawer if user has one or wants to supply it -->
-        <div id="quick-modal-igsid-wrap" class="quick-modal-igsid-wrap" style="display: none;">
-          <label class="quick-field-label">Tester / Recipient IGSID:</label>
-          <div class="igsid-input-group">
-            <input
-              type="text"
-              id="quick-modal-igsid-input"
-              class="igsid-input-field"
-              placeholder="Enter Instagram Scoped ID (IGSID) e.g. 178414..."
-              spellcheck="false"
-            />
-            <button type="button" id="quick-modal-apply-igsid-btn" class="apply-igsid-btn">Apply</button>
-          </div>
         </div>
 
         <!-- Message Editor -->
@@ -602,8 +557,8 @@
           <textarea
             id="quick-modal-textarea"
             class="active-dispatch-textarea quick-modal-textarea"
-            rows="3"
-          >Hi! This is a test message from my AI creator outreach application.</textarea>
+            rows="4"
+          >Hi! Loved your content and would love to collaborate.</textarea>
         </div>
 
         <!-- Send Result Feedback inside Modal -->
@@ -615,8 +570,8 @@
               <p id="quick-result-message">Message details...</p>
               <div id="quick-result-meta-info" class="result-meta-info" style="display: none;">
                 <span class="meta-item">Message ID: <code id="quick-result-msg-id">--</code></span>
-                <span class="meta-item">Sent At: <span id="quick-result-timestamp">--</span></span>
-                <span class="meta-item">Sender: <code id="quick-result-sender">Connected Account</code></span>
+                <span class="meta-item">Provider: <code id="quick-result-mode">Meta Graph API</code></span>
+                <span class="meta-item">Timestamp: <span id="quick-result-timestamp">--</span></span>
               </div>
             </div>
           </div>
@@ -625,13 +580,68 @@
 
       <div class="modal-footer quick-send-modal-footer">
         <button type="button" id="quick-modal-cancel-btn" class="secondary-btn">Cancel</button>
-        <a id="quick-modal-open-ig-btn" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" style="display: none;">
-          <i class="fa-brands fa-instagram"></i> Open Instagram
-        </a>
         <button type="button" id="quick-modal-send-btn" class="primary-send-btn">
-          <span class="btn-text"><i class="fa-brands fa-instagram"></i> Send Test Message</span>
-          <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending via Meta...</span>
+          <span class="btn-text" id="quick-send-modal-btn-text"><i class="fa-brands fa-instagram"></i> Send</span>
+          <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending...</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Educational Explainer Modal: Meta Messaging Rules -->
+  <div id="meta-rules-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="modal-window meta-rules-window glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-circle-info modal-icon" style="color: #60a5fa;"></i>
+          <div>
+            <h3>Official Meta Instagram Messaging Rules</h3>
+            <p>Why public @usernames cannot receive cold DMs via API</p>
+          </div>
+        </div>
+        <button id="close-meta-rules-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body meta-rules-body">
+        <div class="rules-card">
+          <h4><i class="fa-solid fa-shield-halved"></i> 1. Public Discovery ≠ Messaging Recipient</h4>
+          <p>Finding a creator's public profile (e.g. <code>instagram.com/mrbeast</code>) identifies their username, but Meta's official API strictly forbids cold direct messages to arbitrary usernames to prevent spam.</p>
+        </div>
+        <div class="rules-card">
+          <h4><i class="fa-solid fa-key"></i> 2. Instagram-Scoped ID (IGSID) Requirement</h4>
+          <p>Meta requires a numeric <strong>Instagram-Scoped ID (IGSID)</strong>. This ID is uniquely generated when a user interacts with your connected Instagram Professional account (such as sending an inbound DM or commenting on a post).</p>
+        </div>
+        <div class="rules-card">
+          <h4><i class="fa-solid fa-clock"></i> 3. 24-Hour Messaging Window</h4>
+          <p>Once a creator messages your account, Meta opens a standard 24-hour customer service window allowing your app to respond via Graph API.</p>
+        </div>
+        <div class="rules-card">
+          <h4><i class="fa-solid fa-flask"></i> 4. Development & Tester Mode</h4>
+          <p>While your Meta App is in Development Mode, messages can only be delivered to registered App Testers or accounts with established IGSIDs.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="dismiss-meta-rules-btn" class="primary-btn">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message History Modal -->
+  <div id="history-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-window glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-clock-rotate-left modal-icon"></i>
+          <div>
+            <h3>Instagram Message History & Audit Logs</h3>
+            <p>Auditable records of all real and simulated send attempts</p>
+          </div>
+        </div>
+        <button id="close-history-modal-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="history-list" class="history-list">
+          <!-- Dynamic message history cards -->
+        </div>
       </div>
     </div>
   </div>

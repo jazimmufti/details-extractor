@@ -262,20 +262,35 @@ async def deduplicate_and_validate_node(state: ExtractionState) -> Dict[str, Any
         for ai_acc in ai_structured["social_accounts"]:
             plat = (ai_acc.get("platform") or "").lower().strip()
             raw_url = ai_acc.get("url")
+            username = ai_acc.get("username")
+            if username and not username.startswith("@"):
+                username = f"@{username}"
+
+            if not raw_url and username:
+                if plat == "instagram":
+                    raw_url = f"https://instagram.com/{username.lstrip('@')}"
+                elif plat == "twitter":
+                    raw_url = f"https://twitter.com/{username.lstrip('@')}"
+                elif plat == "tiktok":
+                    raw_url = f"https://tiktok.com/@{username.lstrip('@')}"
+                elif plat == "threads":
+                    raw_url = f"https://threads.net/@{username.lstrip('@')}"
+                elif plat == "linkedin":
+                    raw_url = f"https://linkedin.com/in/{username.lstrip('@')}"
+
             if plat and raw_url:
                 norm_u = normalize_url(raw_url)
                 if plat not in final_socials:
                     final_socials[plat] = SocialAccount(
                         platform=plat,
                         url=norm_u,
-                        username=ai_acc.get("username"),
+                        username=username,
                         source=ai_acc.get("source", "gemini_semantic_extraction"),
                         evidence=ai_acc.get("evidence", "Identified via semantic classification"),
                         confidence=ai_acc.get("confidence", "Medium"),
                     )
-                elif not final_socials[plat].username and ai_acc.get("username"):
-                    # Enrich username only without overwriting profile source
-                    final_socials[plat].username = ai_acc.get("username")
+                elif not final_socials[plat].username and username:
+                    final_socials[plat].username = username
 
     # 3. Merge Websites
     seen_web_domains = {w.domain.lower() for w in det_websites if w.domain}
@@ -328,6 +343,7 @@ async def build_final_result_node(state: ExtractionState) -> Dict[str, Any]:
     data = ExtractionData(
         youtube=yt_info,
         social_media=final_socials,
+        social_links=final_socials,
         emails=final_emails,
         websites=final_websites,
         evidence=evidence_items,

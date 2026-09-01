@@ -84,7 +84,17 @@ Write a concise outreach message to {clean_name}:"""
 
                 chain = prompt | self._llm
                 response = await chain.ainvoke({})
-                generated_text = response.content.strip()
+                
+                content = response.content
+                if isinstance(content, list):
+                    generated_text = "".join(
+                        part if isinstance(part, str) else (part.get("text", "") if isinstance(part, dict) else str(part))
+                        for part in content
+                    ).strip()
+                elif isinstance(content, str):
+                    generated_text = content.strip()
+                else:
+                    generated_text = str(content).strip()
 
                 return OutreachGenerateResponse(
                     success=True,
