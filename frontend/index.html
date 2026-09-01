@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Discovery & AI Outreach • Instagram Messaging</title>
+  <meta name="description" content="Evidence-based creator discovery, verified contact extraction, AI outreach generation, and official Meta Instagram messaging integration." />
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Ambient background lighting effects -->
+  <div class="glow-orb glow-top"></div>
+  <div class="glow-orb glow-bottom"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-badge-icon">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">Creator Discovery & Outreach</span>
+          <span class="brand-tagline">AI Intelligence & Official Meta Messaging</span>
+        </div>
+      </div>
+
+      <!-- Real-time System Connectivity Status -->
+      <div class="system-status-group">
+        <div id="status-yt" class="status-pill checking" title="YouTube Data API v3 Status">
+          <span class="status-dot"></span> YouTube API
+        </div>
+        <div id="status-gemini" class="status-pill checking" title="Google Gemini LLM Status">
+          <span class="status-dot"></span> Gemini AI
+        </div>
+        <div id="status-meta" class="status-pill checking" title="Meta Instagram Graph API Status">
+          <span class="status-dot"></span> Meta API
+        </div>
+        <div class="test-mode-badge" title="Running in Development & Safe Test Mode">
+          <i class="fa-solid fa-flask"></i> TEST MODE
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Content -->
+  <main class="main-wrapper">
+    <!-- Hero / Discovery Input Section -->
+    <section class="discovery-hero-section">
+      <div class="hero-badge">
+        <i class="fa-solid fa-bolt-lightning"></i> Real-time Creator Extraction & Outreach
+      </div>
+      <h1 class="hero-headline">
+        Discover Creators & Initiate <span class="gradient-text">Verified Outreach</span>
+      </h1>
+      <p class="hero-subtext">
+        Paste a YouTube, Short, or social URL to extract verified public contacts, reliable Instagram profiles, and generate grounded AI outreach messages with official Meta DM integration.
+      </p>
+
+      <!-- Discovery Search Box -->
+      <div class="discovery-card glass-panel">
+        <form id="discovery-form" class="discovery-form">
+          <div class="url-input-container">
+            <i class="fa-solid fa-magnifying-glass input-leading-icon"></i>
+            <input
+              type="text"
+              id="creator-url-input"
+              class="url-input-field"
+              placeholder="Paste YouTube channel URL, video link, Short, or @handle..."
+              required
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="button" id="clear-input-btn" class="clear-input-btn" title="Clear URL" style="display: none;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <button type="submit" id="find-creator-btn" class="primary-cta-btn">
+            <span class="btn-label"><i class="fa-solid fa-sparkles"></i> Find the Creator</span>
+            <span class="btn-loading" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...</span>
+          </button>
+        </form>
+
+        <!-- Sample Quick-Fill Chips -->
+        <div class="sample-chips-row">
+          <span class="samples-label">Quick samples:</span>
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/@mkbhd">
+            <i class="fa-brands fa-youtube"></i> @mkbhd
+          </button>
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/@MrBeast">
+            <i class="fa-brands fa-youtube"></i> @MrBeast
+          </button>
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+            <i class="fa-solid fa-play"></i> Video URL
+          </button>
+          <button type="button" class="sample-chip" data-url="https://www.youtube.com/shorts/3f5t3g4e_rM">
+            <i class="fa-solid fa-film"></i> YouTube Short
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline Progress Indicator (Visible when loading) -->
+    <section id="pipeline-progress" class="pipeline-progress-section" style="display: none;">
+      <div class="pipeline-card glass-panel">
+        <div class="pipeline-header">
+          <div class="spinner-ring"></div>
+          <div>
+            <h3 class="pipeline-title">Extracting Creator Intelligence</h3>
+            <p id="pipeline-status-text" class="pipeline-desc">Connecting to YouTube API & scraping public profile...</p>
+          </div>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 20%;"></div>
+        </div>
+        <div class="pipeline-stepper">
+          <span class="step-badge active" id="p-step-1"><i class="fa-solid fa-check"></i> Parse URL</span>
+          <span class="step-badge" id="p-step-2"><i class="fa-solid fa-circle"></i> Fetch Metadata</span>
+          <span class="step-badge" id="p-step-3"><i class="fa-solid fa-circle"></i> Extract Contacts</span>
+          <span class="step-badge" id="p-step-4"><i class="fa-solid fa-circle"></i> Verify Instagram</span>
+          <span class="step-badge" id="p-step-5"><i class="fa-solid fa-circle"></i> Generate AI Outreach</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Global Error Banner -->
+    <div id="error-banner" class="notification-banner error-banner" style="display: none;">
+      <i class="fa-solid fa-triangle-exclamation banner-icon"></i>
+      <div class="banner-body">
+        <h4 id="error-title">Unable to Complete Discovery</h4>
+        <p id="error-message">An unexpected error occurred while fetching creator data.</p>
+      </div>
+      <button id="dismiss-error-btn" class="banner-close-btn" title="Dismiss">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Results Section (Visible after discovery) -->
+    <div id="creator-workspace" class="creator-workspace-container" style="display: none;">
+      
+      <!-- Top Action Bar -->
+      <div class="workspace-topbar">
+        <div class="workspace-title-group">
+          <span class="status-indicator-badge live-badge"><span class="pulse-dot"></span> Creator Discovered</span>
+          <span id="meta-summary-tag" class="meta-summary-tag">Verified Public Intelligence</span>
+        </div>
+        <div class="topbar-button-group">
+          <button id="view-history-btn" class="secondary-btn" title="View Instagram Sent Message Logs">
+            <i class="fa-solid fa-clock-rotate-left"></i> Message History
+          </button>
+          <button id="view-evidence-trail-btn" class="secondary-btn" title="Auditable Proof Trail">
+            <i class="fa-solid fa-shield-check"></i> Evidence Trail
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. CREATOR CARD -->
+      <section class="section-card creator-profile-card glass-panel">
+        <div class="creator-profile-layout">
+          <!-- Avatar -->
+          <div class="creator-avatar-container">
+            <img id="creator-avatar-img" src="" alt="Creator Avatar" class="creator-avatar" style="display: none;" />
+            <div id="creator-avatar-fallback" class="avatar-fallback">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <span class="platform-avatar-pill" id="platform-badge"><i class="fa-brands fa-youtube"></i></span>
+          </div>
+
+          <!-- Profile Details -->
+          <div class="creator-details-col">
+            <div class="creator-name-row">
+              <h2 id="creator-name" class="creator-title">Creator Name</h2>
+              <span id="creator-handle" class="creator-handle">@handle</span>
+              <a id="creator-profile-link" href="#" target="_blank" rel="noopener noreferrer" class="external-profile-btn" title="Visit Profile">
+                <span>Open Channel</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="creator-metrics-bar">
+              <div class="metric-item" id="metric-subs">
+                <i class="fa-solid fa-users"></i>
+                <span class="metric-val" id="creator-subscribers-val">0</span>
+                <span class="metric-lbl">Subscribers</span>
+              </div>
+              <div class="metric-item" id="metric-views">
+                <i class="fa-solid fa-eye"></i>
+                <span class="metric-val" id="creator-views-val">0</span>
+                <span class="metric-lbl">Total Views</span>
+              </div>
+              <div class="metric-item" id="metric-recent-content" style="display: none;">
+                <i class="fa-solid fa-video"></i>
+                <span class="metric-val truncate-text" id="creator-recent-title">Video Title</span>
+                <span class="metric-lbl">Recent Content</span>
+              </div>
+            </div>
+
+            <!-- Bio / Description Snippet -->
+            <div class="creator-bio-box">
+              <p id="creator-bio-text" class="creator-bio-text">No bio or description available for this account.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. CONTACT INFORMATION SECTION -->
+      <section class="section-card contact-intel-section">
+        <div class="section-header-row">
+          <div class="section-title-wrap">
+            <i class="fa-solid fa-address-book section-icon"></i>
+            <div>
+              <h3 class="section-heading">Contact Information</h3>
+              <p class="section-caption">Strictly evidenced public contact channels and social profiles</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-cards-grid">
+          <!-- EMAIL CARD -->
+          <div class="intel-box email-box glass-panel">
+            <div class="intel-box-header">
+              <div class="intel-label-group">
+                <div class="icon-circle email-icon-circle"><i class="fa-solid fa-envelope"></i></div>
+                <div>
+                  <h4 class="intel-box-title">Public Email</h4>
+                  <span class="intel-box-subtitle">Verified business address</span>
+                </div>
+              </div>
+              <span id="email-status-pill" class="pill-badge pill-neutral">Checking</span>
+            </div>
+
+            <!-- When Email is Discovered -->
+            <div id="email-found-view" class="intel-box-content" style="display: none;">
+              <div class="email-display-row">
+                <span id="discovered-email-address" class="highlight-email">contact@example.com</span>
+                <button type="button" id="copy-email-btn" class="mini-action-btn" title="Copy Email">
+                  <i class="fa-regular fa-copy"></i> Copy
+                </button>
+              </div>
+              <div class="evidence-source-tag">
+                <i class="fa-solid fa-link"></i> <span id="email-evidence-text">Source: YouTube description</span>
+              </div>
+            </div>
+
+            <!-- When No Email is Found -->
+            <div id="email-not-found-view" class="intel-box-content">
+              <div class="empty-state-text">
+                <i class="fa-solid fa-circle-info"></i> Not publicly available
+              </div>
+              <p class="empty-state-subtext">No public business email was discovered in the channel or video metadata.</p>
+            </div>
+          </div>
+
+          <!-- INSTAGRAM CARD -->
+          <div class="intel-box instagram-box glass-panel">
+            <div class="intel-box-header">
+              <div class="intel-label-group">
+                <div class="icon-circle instagram-icon-circle"><i class="fa-brands fa-instagram"></i></div>
+                <div>
+                  <h4 class="intel-box-title">Instagram Profile</h4>
+                  <span class="intel-box-subtitle">Reliably identified handle</span>
+                </div>
+              </div>
+              <span id="ig-discovery-pill" class="pill-badge pill-neutral">Checking</span>
+            </div>
+
+            <!-- When Instagram is Discovered -->
+            <div id="ig-found-view" class="intel-box-content" style="display: none;">
+              <div class="instagram-display-row">
+                <div class="ig-user-wrap">
+                  <span class="ig-at-symbol">@</span>
+                  <span id="discovered-ig-username" class="highlight-ig">username</span>
+                </div>
+                <a id="open-ig-link" href="#" target="_blank" rel="noopener noreferrer" class="mini-action-btn primary-mini-btn" title="Open Instagram">
+                  <span>Open Instagram</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+              <div class="evidence-source-tag">
+                <i class="fa-solid fa-circle-check"></i> <span id="ig-evidence-text">Discovered from verified channel link</span>
+              </div>
+            </div>
+
+            <!-- When No Instagram is Found -->
+            <div id="ig-not-found-view" class="intel-box-content">
+              <div class="empty-state-text">
+                <i class="fa-solid fa-circle-xmark"></i> Not found
+              </div>
+              <p class="empty-state-subtext">No reliable Instagram handle was identified from public profile links.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Discovered Social Accounts Accordion -->
+        <div id="other-socials-card" class="other-socials-container glass-panel" style="display: none;">
+          <div class="other-socials-header" id="toggle-other-socials">
+            <div class="other-socials-title">
+              <i class="fa-solid fa-share-nodes"></i>
+              <span>Other Discovered Social Media (<span id="other-socials-count">0</span>)</span>
+            </div>
+            <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+          </div>
+          <div id="other-socials-content" class="other-socials-content" style="display: none;">
+            <div id="other-socials-grid" class="socials-grid-badges">
+              <!-- Dynamically populated social accounts -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. AI OUTREACH SECTION -->
+      <section class="section-card ai-outreach-section glass-panel">
+        <div class="section-header-row">
+          <div class="section-title-wrap">
+            <i class="fa-solid fa-wand-magic-sparkles section-icon ai-glow-icon"></i>
+            <div>
+              <h3 class="section-heading">AI Outreach Message</h3>
+              <p class="section-caption">Personalized message grounded strictly on verified creator content</p>
+            </div>
+          </div>
+          <div class="outreach-controls">
+            <button type="button" id="regenerate-outreach-btn" class="control-btn" title="Regenerate with Gemini AI">
+              <i class="fa-solid fa-rotate"></i> <span class="btn-text">Regenerate</span>
+            </button>
+            <button type="button" id="edit-outreach-btn" class="control-btn" title="Edit Outreach Text">
+              <i class="fa-solid fa-pen-to-square"></i> <span id="edit-btn-text">Edit</span>
+            </button>
+            <button type="button" id="copy-outreach-btn" class="control-btn" title="Copy Message Text">
+              <i class="fa-regular fa-copy"></i> <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Outreach Editor / Message Container -->
+        <div class="outreach-editor-box">
+          <textarea
+            id="outreach-textarea"
+            class="outreach-textarea"
+            rows="5"
+            placeholder="AI is generating a personalized outreach message based on discovered creator details..."
+          ></textarea>
+          <div class="editor-footer-row">
+            <div class="grounding-tags" id="grounding-evidence-list">
+              <span class="grounding-pill"><i class="fa-solid fa-fingerprint"></i> Grounded in discovered metadata</span>
+            </div>
+            <div class="char-count">
+              <span id="char-count-val">0</span> characters
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. INSTAGRAM TEST MESSAGING SECTION -->
+      <section class="section-card instagram-messaging-section glass-panel">
+        <div class="section-header-row">
+          <div class="section-title-wrap">
+            <i class="fa-brands fa-instagram section-icon ig-color-icon"></i>
+            <div>
+              <div class="heading-with-badge">
+                <h3 class="section-heading">Instagram Messaging</h3>
+                <span class="test-badge-inline">TEST MODE</span>
+              </div>
+              <p class="section-caption">Real message dispatch through official Meta Graph API</p>
+            </div>
+          </div>
+
+          <!-- Eligibility Pill -->
+          <div id="messaging-eligibility-pill" class="eligibility-status-pill pill-neutral">
+            <span class="pill-dot"></span> Checking Eligibility
+          </div>
+        </div>
+
+        <!-- Eligibility Status Explanatory Banner -->
+        <div id="eligibility-banner" class="eligibility-banner info-mode">
+          <div class="banner-layout">
+            <i class="fa-solid fa-circle-info banner-status-icon" id="eligibility-banner-icon"></i>
+            <div class="banner-text-content">
+              <h5 id="eligibility-banner-title">Meta API Eligibility Evaluation</h5>
+              <p id="eligibility-banner-desc">
+                Evaluating discovered Instagram handle with Meta Graph API messaging rules...
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Test Message Configuration Box -->
+        <div class="messaging-console-card">
+          <div class="console-meta-grid">
+            <div class="console-meta-field">
+              <span class="console-meta-label">Instagram Discovery:</span>
+              <span id="console-discovery-val" class="console-meta-value text-muted">Not discovered</span>
+            </div>
+            <div class="console-meta-field">
+              <span class="console-meta-label">Messaging Recipient:</span>
+              <span id="console-recipient-val" class="console-meta-value text-muted">No recipient available</span>
+            </div>
+            <div class="console-meta-field">
+              <span class="console-meta-label">Meta Official API:</span>
+              <span id="console-api-status-val" class="console-meta-value">Graph API v21.0</span>
+            </div>
+          </div>
+
+          <!-- Message Payload Selector Tabs -->
+          <div class="message-tabs-row">
+            <button type="button" class="msg-tab active" id="tab-test-msg">
+              <i class="fa-solid fa-vial"></i> Standard Test Message
+            </button>
+            <button type="button" class="msg-tab" id="tab-ai-msg">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> AI Outreach Message
+            </button>
+          </div>
+
+          <!-- Active Message Preview Box -->
+          <div class="message-preview-container">
+            <div class="message-preview-header">
+              <span><i class="fa-regular fa-comment-dots"></i> Message Content to Dispatch:</span>
+              <span class="msg-type-indicator" id="active-msg-type-label">Fixed Test DM</span>
+            </div>
+            <textarea id="active-dispatch-textarea" class="active-dispatch-textarea" rows="3">Hi! This is a test message from my AI creator outreach application.</textarea>
+          </div>
+
+          <!-- Optional Scoped Recipient ID Input (for registered testers/IGSID) -->
+          <div class="advanced-recipient-toggle" id="advanced-recipient-toggle">
+            <button type="button" id="toggle-recipient-id-btn" class="link-like-btn">
+              <i class="fa-solid fa-sliders"></i> <span>Developer / Tester Options (IGSID)</span>
+            </button>
+            <div id="recipient-id-drawer" class="recipient-id-drawer" style="display: none;">
+              <p class="drawer-helper-text">
+                If the recipient has interacted with your Instagram Business account or is a registered Meta App Tester, enter their Instagram-Scoped User ID (IGSID) below:
+              </p>
+              <div class="igsid-input-group">
+                <input
+                  type="text"
+                  id="custom-igsid-input"
+                  class="igsid-input-field"
+                  placeholder="e.g. 17841401234567890 (Instagram Scoped User ID)"
+                  spellcheck="false"
+                />
+                <button type="button" id="apply-igsid-btn" class="apply-igsid-btn">Apply IGSID</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Send Action Bar & Dynamic Result -->
+          <div class="send-action-row">
+            <div class="send-status-display" id="send-status-display">
+              <!-- Dynamic status message rendered here -->
+            </div>
+
+            <button type="button" id="send-instagram-btn" class="primary-send-btn">
+              <span class="btn-text"><i class="fa-brands fa-instagram"></i> Send Test Message</span>
+              <span class="btn-spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Sending via Meta...</span>
+            </button>
+          </div>
+
+          <!-- Real API Result Notification (Success or Real Error) -->
+          <div id="send-result-card" class="send-result-card" style="display: none;">
+            <div class="result-card-inner">
+              <i class="result-card-icon" id="result-icon"></i>
+              <div class="result-card-details">
+                <h4 id="result-title">Message Status</h4>
+                <p id="result-message">Message details...</p>
+                <div id="result-meta-info" class="result-meta-info" style="display: none;">
+                  <span class="meta-item">Message ID: <code id="result-msg-id">--</code></span>
+                  <span class="meta-item">Sent At: <span id="result-timestamp">--</span></span>
+                  <span class="meta-item">Provider: <code>Meta Graph API</code></span>
+                </div>
+              </div>
+              <button type="button" id="retry-send-btn" class="retry-btn" style="display: none;">
+                <i class="fa-solid fa-rotate-right"></i> Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. AUDITABLE EVIDENCE TRAIL (Collapsible) -->
+      <section id="evidence-trail-section" class="section-card evidence-trail-section glass-panel" style="display: none;">
+        <div class="section-header-row">
+          <div class="section-title-wrap">
+            <i class="fa-solid fa-shield-halved section-icon"></i>
+            <div>
+              <h3 class="section-heading">Auditable Evidence Trail</h3>
+              <p class="section-caption">Verbatim raw text snippets verifying each extracted entity</p>
+            </div>
+          </div>
+          <button type="button" id="close-evidence-btn" class="mini-action-btn">
+            <i class="fa-solid fa-xmark"></i> Close
+          </button>
+        </div>
+
+        <div class="evidence-table-container">
+          <table class="evidence-table">
+            <thead>
+              <tr>
+                <th>Entity Field</th>
+                <th>Confidence</th>
+                <th>Source</th>
+                <th>Verbatim Evidence Match</th>
+              </tr>
+            </thead>
+            <tbody id="evidence-table-tbody">
+              <!-- Dynamically rendered evidence rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Message History Modal -->
+  <div id="history-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-window glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-clock-rotate-left modal-icon"></i>
+          <div>
+            <h3>Meta Instagram Message History</h3>
+            <p>Auditable log of all real send attempts</p>
+          </div>
+        </div>
+        <button id="close-history-modal-btn" class="modal-close-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="history-list" class="history-list">
+          <!-- Dynamic message history cards -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p>Creator Discovery & AI Outreach Engine • Powered by Official Meta Graph API, YouTube Data API & Google Gemini</p>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
