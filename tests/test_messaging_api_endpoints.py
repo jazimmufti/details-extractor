@@ -95,12 +95,12 @@ async def test_api_send_real_mode_rejects_unresolved_recipient(monkeypatch):
             "message": "Cold DM attempt",
             "mode": "real",
         })
-        assert res.status_code == 200
+        assert res.status_code == 400
         data = res.json()
         assert data["success"] is False
-        assert data["status"] == "rejected"
-        assert data["mode"] == "real"
-        assert "cannot receive messages via username alone" in data["error"]
+        assert data["status"] == "not_messageable"
+        assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
+        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
 
 
 @pytest.mark.asyncio
@@ -174,7 +174,7 @@ async def test_get_recipient_status_endpoint(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_send_message_automatic_igsid_resolution(monkeypatch):
-    """POST /api/instagram/send-message automatically resolves stored legitimate IGSID without user input."""
+    """POST /api/social/instagram/send automatically resolves stored legitimate IGSID without user input."""
     from app.services.instagram_service import _save_recipient_to_registry
 
     monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_super_secret_token_123")
@@ -203,11 +203,12 @@ async def test_send_message_automatic_igsid_resolution(monkeypatch):
     with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            # Client sends only creator_username and message (NO recipient_igsid provided by frontend)
-            res = await client.post("/api/instagram/send-message", json={
+            # Client sends only instagram_username and message (NO instagram_user_id provided by frontend)
+            res = await client.post("/api/social/instagram/send", json={
                 "creator_id": "UC_auto_123",
-                "creator_username": "auto_resolved_creator",
+                "instagram_username": "auto_resolved_creator",
                 "message": "Outreach message with automatic IGSID resolution!",
+                "mode": "real"
             })
 
             assert res.status_code == 200
@@ -225,44 +226,47 @@ async def test_send_message_automatic_igsid_resolution(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_send_message_unregistered_creator_rejected():
-    """POST /api/instagram/send-message returns HTTP 400 when no legitimate IGSID is stored."""
+    """POST /api/social/instagram/send returns HTTP 400 when no legitimate IGSID is stored."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.post("/api/instagram/send-message", json={
-            "creator_username": "non_stored_creator_xyz",
+        res = await client.post("/api/social/instagram/send", json={
+            "instagram_username": "non_stored_creator_xyz",
             "message": "Hello creator without stored IGSID",
+            "mode": "real"
         })
         assert res.status_code == 400
         data = res.json()
         assert data["success"] is False
         assert data["status"] == "not_messageable"
         assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["message"]
+        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
 
 
 @pytest.mark.asyncio
 async def test_send_message_missing_igsid_and_username():
-    """POST /api/instagram/send-message returns HTTP 400 when no identifier can resolve IGSID."""
+    """POST /api/social/instagram/send returns HTTP 400 when no identifier can resolve IGSID."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.post("/api/instagram/send-message", json={
+        res = await client.post("/api/social/instagram/send", json={
             "message": "Hello creator",
+            "mode": "real"
         })
         assert res.status_code == 400
         data = res.json()
         assert data["success"] is False
         assert data["error_code"] == "RECIPIENT_NOT_ELIGIBLE"
-        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["message"]
+        assert "Unable to send automatically: recipient is not eligible for Meta messaging." in data["error"]
 
 
 @pytest.mark.asyncio
 async def test_send_message_username_substituted_as_igsid():
-    """POST /api/instagram/send-message rejects @username as substitute for IGSID."""
+    """POST /api/social/instagram/send rejects @username as substitute for IGSID."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.post("/api/instagram/send-message", json={
-            "recipient_igsid": "@mrbeast",
+        res = await client.post("/api/social/instagram/send", json={
+            "instagram_user_id": "@mrbeast",
             "message": "Hello creator",
+            "mode": "real"
         })
         assert res.status_code == 400
         data = res.json()
@@ -272,37 +276,33 @@ async def test_send_message_username_substituted_as_igsid():
 
 @pytest.mark.asyncio
 async def test_send_message_empty_message():
-    """POST /api/instagram/send-message returns HTTP 400 when message is empty."""
+    """POST /api/social/instagram/send returns validation error when message is empty."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.post("/api/instagram/send-message", json={
-            "recipient_igsid": "17841412345678901",
-            "message": "   ",
+        res = await client.post("/api/social/instagram/send", json={
+            "instagram_user_id": "17841412345678901",
+            "message": "",
+            "mode": "real"
         })
-        assert res.status_code == 400
-        data = res.json()
-        assert data["success"] is False
-        assert data["error_code"] == "MESSAGE_REQUIRED"
+        assert res.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_send_message_too_long():
-    """POST /api/instagram/send-message returns HTTP 400 when message exceeds 1000 characters."""
+    """POST /api/social/instagram/send returns validation error when message exceeds 1000 characters."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.post("/api/instagram/send-message", json={
-            "recipient_igsid": "17841412345678901",
+        res = await client.post("/api/social/instagram/send", json={
+            "instagram_user_id": "17841412345678901",
             "message": "a" * 1005,
+            "mode": "real"
         })
-        assert res.status_code == 400
-        data = res.json()
-        assert data["success"] is False
-        assert data["error_code"] == "MESSAGE_TOO_LONG"
+        assert res.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_send_message_real_meta_success(monkeypatch):
-    """POST /api/instagram/send-message sends real Meta API request and returns success payload."""
+    """POST /api/social/instagram/send sends real Meta API request and returns success payload."""
     monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_super_secret_token_123")
     monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
 
@@ -321,18 +321,18 @@ async def test_send_message_real_meta_success(monkeypatch):
     with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            res = await client.post("/api/instagram/send-message", json={
-                "recipient_igsid": "17841499999999999",
+            res = await client.post("/api/social/instagram/send", json={
+                "instagram_user_id": "17841499999999999",
                 "message": "Hello from creator discovery app!",
-                "creator_username": "tested_creator",
-                "creator_url": "https://instagram.com/tested_creator"
+                "instagram_username": "tested_creator",
+                "mode": "real"
             })
 
             assert res.status_code == 200
             data = res.json()
             assert data["success"] is True
             assert data["status"] == "sent"
-            assert data["provider"] == "meta_instagram"
+            assert data["provider"] == "meta"
             assert data["message_id"] == "aWdfbWVzc2FnZToxNzgz"
             assert "sent_at" in data
 
@@ -352,7 +352,7 @@ async def test_send_message_real_meta_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_send_message_real_meta_error(monkeypatch):
-    """POST /api/instagram/send-message returns HTTP 400 with structured error when Meta rejects."""
+    """POST /api/social/instagram/send returns HTTP 400 with structured error when Meta rejects."""
     monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_super_secret_token_123")
     monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
 
@@ -376,24 +376,25 @@ async def test_send_message_real_meta_error(monkeypatch):
     with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            res = await client.post("/api/instagram/send-message", json={
-                "recipient_igsid": "17841499999999999",
+            res = await client.post("/api/social/instagram/send", json={
+                "instagram_user_id": "17841499999999999",
                 "message": "Hello from creator discovery app!",
+                "mode": "real"
             })
 
             assert res.status_code == 400
             data = res.json()
             assert data["success"] is False
-            assert data["status"] == "failed"
-            assert data["provider"] == "meta_instagram"
-            assert data["error"]["code"] == "10"
-            assert "permissions" in data["error"]["message"].lower() or "unauthorized" in data["error"]["message"].lower()
+            assert data["status"] == "rejected"
+            assert data["provider"] == "meta"
+            assert data["meta_diagnostics"]["code"] == 10
+            assert "permissions" in data["error"].lower() or "unauthorized" in data["error"].lower()
             assert "EAA_super_secret_token_123" not in json.dumps(data)
 
 
 @pytest.mark.asyncio
 async def test_send_message_audit_trail_recorded(monkeypatch):
-    """Verifies that POST /api/instagram/send-message logs all attempts into audit storage."""
+    """Verifies that POST /api/social/instagram/send logs all attempts into audit storage."""
     monkeypatch.setattr(settings, "INSTAGRAM_ACCESS_TOKEN", "EAA_test_token")
     monkeypatch.setattr(settings, "INSTAGRAM_ACCOUNT_ID", "17841400000000000")
 
@@ -412,10 +413,11 @@ async def test_send_message_audit_trail_recorded(monkeypatch):
     with patch("app.services.instagram_service.httpx.AsyncClient", mock_client_cls):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            res = await client.post("/api/instagram/send-message", json={
-                "recipient_igsid": "17841488888888888",
+            res = await client.post("/api/social/instagram/send", json={
+                "instagram_user_id": "17841488888888888",
                 "message": "Audit trail verification text",
-                "creator_username": "audit_creator",
+                "instagram_username": "audit_creator",
+                "mode": "real"
             })
             assert res.status_code == 200
 

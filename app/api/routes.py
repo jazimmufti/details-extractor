@@ -169,16 +169,21 @@ async def check_instagram_messaging_eligibility(request: InstagramEligibilityReq
 
 
 @router.post("/social/instagram/send", response_model=InstagramSendResponse)
-async def send_instagram_message(request: InstagramSendRequest):
+async def send_instagram_message(request: InstagramSendRequest, response: Response):
     """
     Dispatches a message via official Meta Graph API (or local simulation).
     Enforces recipient eligibility, server-side idempotency, and never mocks success.
     """
+    clean_user = request.instagram_username or request.creator_username
+    target_id = request.instagram_user_id or request.recipient_igsid
     logger.info(
         f"POST /api/social/instagram/send mode='{request.mode}' "
-        f"username='{request.instagram_username}', user_id='{request.instagram_user_id}'"
+        f"username='{clean_user}', user_id='{target_id}'"
     )
-    return await instagram_service.send_message(request)
+    result = await instagram_service.send_message(request)
+    if not result.success:
+        response.status_code = 400
+    return result
 
 
 @router.post("/instagram/outreach/prepare", response_model=ColdOutreachPrepareResponse)
@@ -248,129 +253,12 @@ async def get_instagram_recipient_status(
     )
 
 
-@router.post("/instagram/send-message")
-async def send_official_instagram_message(request: InstagramSendMessageRequest):
+@router.post("/instagram/send-message", response_model=InstagramSendResponse)
+async def send_official_instagram_message_alias(request: InstagramSendRequest, response: Response):
     """
-    Sends an official direct message via Meta Instagram Send API.
-    Automatically resolves the stored legitimate IGSID from backend persistence.
-    The browser/user never needs to supply an IGSID.
+    Alias route for /api/social/instagram/send for backward compatibility.
     """
-    raw_msg = (request.message or "").strip()
-    creator_id = (request.creator_id or "").strip() or None
-    creator_username = (request.creator_username or "").strip() or None
-    creator_url = (request.creator_url or "").strip() or None
-    raw_igsid = (request.recipient_igsid or "").strip() or None
-
-    # 1. Validate message presence and length
-    if not raw_msg:
-        return Response(
-            status_code=400,
-            content=json.dumps({
-                "success": False,
-                "status": "failed",
-                "error_code": "MESSAGE_REQUIRED",
-                "message": "Message text content cannot be empty."
-            }),
-            media_type="application/json"
-        )
-
-    if len(raw_msg) > 1000:
-        return Response(
-            status_code=400,
-            content=json.dumps({
-                "success": False,
-                "status": "failed",
-                "error_code": "MESSAGE_TOO_LONG",
-                "message": "Message text exceeds maximum length of 1000 characters."
-            }),
-            media_type="application/json"
-        )
-
-    # 2. Reject username passed as IGSID if explicitly provided
-    if raw_igsid and (raw_igsid.startswith("@") or not raw_igsid.isdigit()):
-        return Response(
-            status_code=400,
-            content=json.dumps({
-                "success": False,
-                "status": "not_messageable",
-                "error_code": "IGSID_REQUIRED",
-                "message": "A valid numeric Instagram-scoped recipient ID is required. Usernames cannot be used as IGSIDs."
-            }),
-            media_type="application/json"
-        )
-
-    # 3. Automatic Recipient Resolution from backend persistence
-    target_igsid = raw_igsid
-    if not target_igsid:
-        resolved = resolve_recipient_for_creator(
-            creator_id=creator_id,
-            instagram_username=creator_username,
-            instagram_url=creator_url,
-        )
-        if resolved and resolved.get("igsid"):
-            target_igsid = resolved["igsid"]
-
-    # 4. If no legitimate IGSID resolved, return not_messageable HTTP 400
-    if not target_igsid:
-        return Response(
-            status_code=400,
-            content=json.dumps({
-                "success": False,
-                "status": "not_messageable",
-                "error_code": "RECIPIENT_NOT_ELIGIBLE",
-                "message": "Unable to send automatically: recipient is not eligible for Meta messaging.",
-                "details": (
-                    f"Discovered Instagram handle @{creator_username or 'creator'} has not established an active messaging session "
-                    "with your connected Instagram Business account. Meta's official Graph API strictly requires a numeric "
-                    "Instagram-Scoped ID (IGSID) generated via recipient interaction before direct messages can be delivered."
-                )
-            }),
-            media_type="application/json"
-        )
-
-    # 5. Dispatch through real Meta Graph API
-    send_payload = InstagramSendRequest(
-        creator_id=creator_id,
-        instagram_user_id=target_igsid,
-        instagram_username=creator_username,
-        message=raw_msg,
-        mode="real",
-    )
-    result = await instagram_service.send_message(send_payload)
-
-    if result.success and result.status == "sent":
-        return Response(
-            status_code=200,
-            content=json.dumps({
-                "success": True,
-                "status": "sent",
-                "provider": "meta_instagram",
-                "message_id": result.message_id,
-                "sent_at": result.sent_at,
-            }),
-            media_type="application/json"
-        )
-    else:
-        error_code = "META_API_ERROR"
-        if result.meta_diagnostics and result.meta_diagnostics.code:
-            error_code = str(result.meta_diagnostics.code)
-        
-        return Response(
-            status_code=400,
-            content=json.dumps({
-                "success": False,
-                "status": "failed",
-                "provider": "meta_instagram",
-                "error_code": error_code,
-                "error": {
-                    "code": error_code,
-                    "message": result.error or "Meta rejected the message dispatch request.",
-                    "details": result.details,
-                },
-                "message": result.error or "Meta rejected the message dispatch request."
-            }),
-            media_type="application/json"
-        )
+    return await send_instagram_message(request, response)
 
 
 
